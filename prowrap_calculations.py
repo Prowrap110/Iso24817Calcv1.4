@@ -934,9 +934,17 @@ def calculate_type_a_class3_prowrap_check(
     )
     result = calculate_type_a_class3(inputs)
     result["input_summary"] = {
+        "outside_diameter_mm": od,
         "pressure_bar": pressure_bar,
+        "design_temperature_c": temp,
         "remaining_wall_mm": rem_wall,
+        "design_life_years": design_life,
         "substrate_allowable_pressure_bar": substrate_allowable_pressure_bar,
+        "installation_temperature_c": installation_temp,
+        "component_type": component_type,
+        "cyclic_derating_factor": cyclic_derating_factor,
+        "nominal_wall_mm": nominal_wall_mm,
+        "axial_load_case": axial_load_case,
         "hoop_modulus_mpa": PROWRAP["modulus_circ"],
         "axial_modulus_mpa": PROWRAP["modulus_axial"],
         "lap_shear_mpa": PROWRAP["long_term_lap_shear"],
@@ -982,6 +990,57 @@ def apply_type_a_class3_result_to_repair(
         raise ValueError(
             "Strain limit basis mismatch: repair uses "
             f"{repair_basis}, but Type A/Class 3 uses {rigorous_basis}."
+        )
+
+    input_summary = typea_class3_result.get("input_summary", {})
+    expected_inputs = {
+        "outside_diameter_mm": repair_data["od"],
+        "pressure_bar": repair_data["pressure"],
+        "design_temperature_c": repair_data["temp"],
+        "remaining_wall_mm": repair_data["rem_wall_eol"],
+        "design_life_years": repair_data["design_life"],
+        "substrate_allowable_pressure_bar": substrate_credit_bar_for_iso_check(
+            repair_data
+        ),
+        "installation_temperature_c": repair_data["installation_temp"],
+        "cyclic_derating_factor": repair_data["cyclic_derating_factor"],
+        "nominal_wall_mm": repair_data["wall"],
+        "axial_load_case": repair_data["axial_load_case"],
+    }
+    labels = {
+        "outside_diameter_mm": "outside diameter",
+        "pressure_bar": "design pressure",
+        "design_temperature_c": "design temperature",
+        "remaining_wall_mm": "remaining wall",
+        "design_life_years": "design life",
+        "substrate_allowable_pressure_bar": "substrate allowable pressure",
+        "installation_temperature_c": "installation temperature",
+        "cyclic_derating_factor": "cyclic derating factor",
+        "nominal_wall_mm": "nominal wall",
+        "axial_load_case": "axial load case",
+    }
+    for key, expected in expected_inputs.items():
+        actual = input_summary.get(key)
+        if (
+            actual is None
+            or not math.isclose(
+                float(actual), float(expected), rel_tol=1e-12, abs_tol=1e-12
+            )
+        ):
+            raise ValueError(
+                f"Type A/Class 3 {labels[key]} mismatch: repair uses "
+                f"{expected}, but the rigorous result uses {actual}."
+            )
+
+    repair_component = (repair_data["component_type"] or "Straight").strip().upper()
+    rigorous_component = (
+        input_summary.get("component_type") or "Straight"
+    ).strip().upper()
+    if repair_component != rigorous_component:
+        raise ValueError(
+            "Type A/Class 3 component type mismatch: repair uses "
+            f"{repair_data['component_type']}, but the rigorous result uses "
+            f"{input_summary.get('component_type')}."
         )
 
     typea_class3_result = dict(typea_class3_result)

@@ -313,3 +313,60 @@ No open concern remains within this local final-review fix scope. Existing
 release boundaries remain: no v1.4 remote publication, GitHub release,
 Streamlit deployment, PyInstaller bundle, codesign inspection, ZIP creation,
 or first-launch acceptance was authorized or performed.
+
+## Scoped re-review and controller adjudication
+
+The independent scoped re-review marked all six original findings resolved.
+It identified one new Important consistency issue: the adapter could accept a
+baseline repair calculated with one cyclic derating factor and a rigorous
+result calculated with another, then combine the rigorous strain/thickness
+with the baseline input metadata.
+
+The controller resolved this by making the rigorous result record its complete
+design-driving input basis and making the adapter reject any mismatch before
+attaching or applying that result. The checked inputs are outside diameter,
+design pressure and temperature, remaining wall, design life, substrate
+allowable pressure, installation temperature, cyclic derating factor, nominal
+wall, axial load case, component type, and strain-limit basis. Matching results
+continue to preserve the original repair metadata because those inputs are now
+proven identical.
+
+TDD RED evidence:
+
+```text
+python3 -m pytest -q test_typea_class3_adapter.py::TypeAClass3AdapterTest::test_adapter_rejects_mismatched_cyclic_derating_factor
+F                                                                        [100%]
+E       AssertionError: ValueError not raised
+1 failed in 0.49s
+```
+
+Focused GREEN evidence:
+
+```text
+python3 -m pytest -q test_typea_class3_adapter.py::TypeAClass3AdapterTest::test_adapter_rejects_mismatched_cyclic_derating_factor test_typea_class3_adapter.py::TypeAClass3AdapterTest::test_adapter_uses_matching_rigorous_strain_metadata
+..                                                                       [100%]
+2 passed in 0.46s
+```
+
+Fresh final verification after controller adjudication:
+
+```text
+python3 -m pytest -q
+........................................................................ [ 32%]
+........................................................................ [ 65%]
+........................................................................ [ 98%]
+....                                                                     [100%]
+220 passed in 4.10s
+
+python3 -m compileall -q .
+exit 0, no output
+
+git diff --check da83373...HEAD
+exit 0, no output
+
+git diff --check
+exit 0, no output
+```
+
+The local single-calculator v1.4 candidate is therefore accepted for use as
+the engine snapshot source for CalcBatch v1.4.
