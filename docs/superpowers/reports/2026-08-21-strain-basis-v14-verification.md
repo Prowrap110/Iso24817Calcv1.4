@@ -133,10 +133,12 @@ strain_limits.py
 ```
 
 The build-script dry run reported the exact v1.4 app, executable, archive, and
-bundle identifier, followed by all six release gates in order. No active
-`.py`, `.sh`, or `.spec` source contains the previous product name, archive,
-bundle identifier, or repository identity; v1.3 references remain only for
-historical parity/isolation/provenance.
+bundle identifier, followed by all six release gates in order. No active,
+Git-tracked text file contains the previous product name, archive, bundle
+identifier, or repository identity. Provenance plus tracked historical plans,
+specifications, reports, and the v1.2 README are explicitly classified outside
+that active-identity scan; v1.3 references remain there only for historical
+parity/isolation/provenance.
 
 ## Full verification
 
@@ -144,7 +146,7 @@ Commands and observed results:
 
 ```text
 python3 -m pytest -q
-215 passed in 4.17s
+216 passed in 4.17s
 
 python3 -m compileall -q .
 exit 0, no output

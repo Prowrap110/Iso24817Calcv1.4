@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import subprocess
 import unittest
 from pathlib import Path
 
@@ -15,6 +16,10 @@ from strain_limits import LCL_STRAIN_LIMIT, STANDARD_STRAIN_LIMIT
 REPOSITORY_DIRECTORY = Path(__file__).resolve().parent
 PROVENANCE_PATH = REPOSITORY_DIRECTORY / "PROVENANCE.json"
 README_PATH = REPOSITORY_DIRECTORY / "README.md"
+CURRENT_PRODUCT_NAME = "PROWRAP ISO 24817 Calculator v1.4"
+CURRENT_ARCHIVE_NAME = "PROWRAP-Calculator-v1.4-macOS-arm64-M4-M5.zip"
+CURRENT_BUNDLE_IDENTIFIER = "com.protapglobal.prowrap.iso24817calculator.v14"
+CURRENT_REPOSITORY_IDENTITY = "Prowrap110/Iso24817Calcv1.4"
 V13_IMPORTED_COMMIT = "da83373d648694f50b8a974ff6071a73ceec2089"
 V13_IMPORTED_TREE = "e619db9be11082ea6aa34a59b9d7ed62e7a0e813"
 V13_ARCHIVE_NAME = "PROWRAP-Calculator-" + "v1." + "3-macOS-arm64-M4-M5.zip"
@@ -32,6 +37,54 @@ ENGINE_MODULE_ALLOWLIST = (
     "prowrap_mechanisms.py",
     "strain_limits.py",
 )
+HISTORICAL_IDENTITY_FILES = {
+    Path("PROVENANCE.json"),
+    Path("README_V1.2.md"),
+}
+HISTORICAL_IDENTITY_DIRECTORIES = (
+    Path(".superpowers/sdd"),
+    Path("docs/superpowers/plans"),
+    Path("docs/superpowers/reports"),
+    Path("docs/superpowers/specs"),
+)
+
+
+def previous_product_identities() -> tuple[str, ...]:
+    return (
+        "PROWRAP ISO 24817 Calculator " + "v1." + "3",
+        "PROWRAP-Calculator-" + "v1." + "3-macOS-arm64-M4-M5.zip",
+        "com.protapglobal.prowrap.iso24817calculator." + "v13",
+        "Prowrap110/Iso24817Calc" + "v1.3",
+    )
+
+
+def is_historical_identity_path(relative_path: Path) -> bool:
+    return relative_path in HISTORICAL_IDENTITY_FILES or any(
+        relative_path.is_relative_to(directory)
+        for directory in HISTORICAL_IDENTITY_DIRECTORIES
+    )
+
+
+def tracked_active_text_files() -> tuple[tuple[Path, str], ...]:
+    tracked_output = subprocess.check_output(
+        ["git", "ls-files", "-z"],
+        cwd=REPOSITORY_DIRECTORY,
+    )
+    active_files = []
+    for encoded_path in tracked_output.split(b"\0"):
+        if not encoded_path:
+            continue
+        relative_path = Path(encoded_path.decode("utf-8"))
+        if is_historical_identity_path(relative_path):
+            continue
+        try:
+            text = (REPOSITORY_DIRECTORY / relative_path).read_text(
+                encoding="utf-8"
+            )
+        except UnicodeDecodeError:
+            continue
+        active_files.append((relative_path, text))
+    return tuple(active_files)
 
 
 def representative_inputs() -> dict[str, object]:
@@ -74,9 +127,9 @@ class V14AcceptanceTest(unittest.TestCase):
 
     def test_active_product_documents_use_v14_identity_and_explain_both_routes(self):
         expected_identity = (
-            "PROWRAP ISO 24817 Calculator v1.4",
-            "PROWRAP-Calculator-v1.4-macOS-arm64-M4-M5.zip",
-            "com.protapglobal.prowrap.iso24817calculator.v14",
+            CURRENT_PRODUCT_NAME,
+            CURRENT_ARCHIVE_NAME,
+            CURRENT_BUNDLE_IDENTIFIER,
         )
         for document_path in (
             README_PATH,
@@ -87,30 +140,66 @@ class V14AcceptanceTest(unittest.TestCase):
                 document = document_path.read_text(encoding="utf-8")
                 for identity_value in expected_identity:
                     self.assertIn(identity_value, document)
+                for previous_identity in previous_product_identities():
+                    self.assertNotIn(previous_identity, document)
 
         readme = README_PATH.read_text(encoding="utf-8")
+        self.assertIn(CURRENT_REPOSITORY_IDENTITY, readme)
         self.assertIn("Standard Formula 10", readme)
         self.assertIn("LCL Formula 11", readme)
         self.assertIn("LCL preserves v1.3 calculation behavior", readme)
 
-    def test_active_source_contains_no_previous_product_identity(self):
-        previous_identities = (
-            "PROWRAP ISO 24817 Calculator " + "v1." + "3",
-            "PROWRAP-Calculator-" + "v1." + "3-macOS-arm64-M4-M5.zip",
-            "com.protapglobal.prowrap.iso24817calculator." + "v13",
-            "Prowrap110/Iso24817Calc" + "v1.3",
-        )
-        active_source_paths = sorted(
-            path
-            for suffix in ("*.py", "*.sh", "*.spec")
-            for path in REPOSITORY_DIRECTORY.rglob(suffix)
-            if ".git" not in path.parts
-        )
-        for source_path in active_source_paths:
-            source = source_path.read_text(encoding="utf-8")
-            for previous_identity in previous_identities:
+    def test_active_configuration_contains_exact_v14_identity(self):
+        expected_by_path = {
+            Path("app_identity.py"): (
+                CURRENT_PRODUCT_NAME,
+                'APP_VERSION = "1.4"',
+            ),
+            Path("packaging_contract.py"): (
+                CURRENT_ARCHIVE_NAME,
+                CURRENT_BUNDLE_IDENTIFIER,
+            ),
+            Path("scripts/build_macos.sh"): (
+                CURRENT_PRODUCT_NAME,
+                CURRENT_ARCHIVE_NAME,
+                CURRENT_BUNDLE_IDENTIFIER,
+                "CFBundleShortVersionString 1.4",
+            ),
+        }
+        tracked_files = dict(tracked_active_text_files())
+        for relative_path, expected_values in expected_by_path.items():
+            with self.subTest(path=relative_path):
+                self.assertIn(relative_path, tracked_files)
+                for expected_value in expected_values:
+                    self.assertIn(expected_value, tracked_files[relative_path])
+
+    def test_tracked_active_project_files_contain_no_previous_product_identity(self):
+        active_files = tracked_active_text_files()
+        active_file_map = dict(active_files)
+        self.assertIn(Path("README.md"), active_file_map)
+        self.assertNotIn(Path("PROVENANCE.json"), active_file_map)
+        self.assertFalse(is_historical_identity_path(Path("README.md")))
+        self.assertTrue(all(
+            is_historical_identity_path(path)
+            for path in (
+                Path("PROVENANCE.json"),
+                Path("README_V1.2.md"),
+                Path(".superpowers/sdd/example.md"),
+                Path("docs/superpowers/plans/example.md"),
+                Path("docs/superpowers/reports/example.md"),
+                Path("docs/superpowers/specs/example.md"),
+            )
+        ))
+        self.assertFalse(any(
+            ".venv-desktop" in relative_path.parts
+            or ".worktrees" in relative_path.parts
+            for relative_path, _text in active_files
+        ))
+
+        for relative_path, source in active_files:
+            for previous_identity in previous_product_identities():
                 with self.subTest(
-                    source=source_path.relative_to(REPOSITORY_DIRECTORY),
+                    source=relative_path,
                     identity=previous_identity,
                 ):
                     self.assertNotIn(previous_identity, source)
