@@ -23,7 +23,9 @@ def complete_values():
         "loc_": "External", "len_": 100.0, "rem_": 4.5,
         "design_life": 20, "df": 0.72, "installation_temp": 20.0,
         "component_type": "Straight", "cyclic_derating_factor": 1.0,
-        "axial_load_case": 0, "cloth_width_mm": 300.0,
+        "axial_load_case": 0,
+        "cloth_width_1_mm": 300,
+        "cloth_width_2_mm": 300,
         "defect_length_basis": ACTUAL_DEFECT_LENGTH,
     })
     return values
@@ -143,6 +145,22 @@ class CalculatorFormTest(unittest.TestCase):
     def test_blank_form_is_not_ready_to_calculate(self):
         self.assertFalse(inputs_are_complete(INPUT_DEFAULTS))
 
+    def test_cloth_width_inputs_start_neutral_and_are_both_required(self):
+        values = complete_values()
+
+        self.assertEqual(INPUT_DEFAULTS["cloth_width_1_mm"], "Select…")
+        self.assertEqual(INPUT_DEFAULTS["cloth_width_2_mm"], "Select…")
+        values["cloth_width_1_mm"] = "Select…"
+        values["cloth_width_2_mm"] = "Select…"
+
+        self.assertEqual(
+            missing_required_fields(values),
+            [
+                "Prowrap CF Cloth Width 1 [mm]",
+                "Prowrap CF Cloth Width 2 [mm]",
+            ],
+        )
+
     def test_complete_form_is_ready_to_calculate(self):
         values = complete_values()
         values["show_typea_class3_check"] = True
@@ -177,7 +195,10 @@ class CalculatorFormTest(unittest.TestCase):
 
         self.assertEqual(
             missing_required_fields(values),
-            ["Prowrap CF cloth band width [mm]"],
+            [
+                "Prowrap CF Cloth Width 1 [mm]",
+                "Prowrap CF Cloth Width 2 [mm]",
+            ],
         )
 
     def test_internal_corrosion_requires_an_explicit_corrosion_rate(self):
@@ -190,7 +211,7 @@ class CalculatorFormTest(unittest.TestCase):
                 "len_": 100.0, "rem_": 4.5, "design_life": 20, "df": 0.72,
                 "installation_temp": 20.0, "component_type": "Straight",
                 "cyclic_derating_factor": 1.0, "axial_load_case": 0,
-                "cloth_width_mm": 300.0,
+                "cloth_width_1_mm": 300, "cloth_width_2_mm": 300,
             }
         )
 

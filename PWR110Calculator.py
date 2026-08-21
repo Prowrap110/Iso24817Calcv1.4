@@ -246,7 +246,10 @@ def create_pdf(report_data):
         "Continuous Repair Length (ISO)": (
             f"{report_data['iso_length']:.0f} mm"
         ),
-        "Procurement Length": f"{report_data['proc_length']} mm ({report_data['num_bands']} Bands)",
+        "500 mm Bands": str(report_data['num_bands_500']),
+        "300 mm Bands": str(report_data['num_bands_300']),
+        "Total Axial Bands": str(report_data['num_bands']),
+        "Procurement Axial Length": f"{report_data['proc_length']:g} mm",
         "Design Factor": f"{report_data['design_factor']}"
     })
     
@@ -293,7 +296,7 @@ def create_pdf(report_data):
     pdf.ln(3)
 
     add_section("4. Material Procurement", {
-        "Fabric Needed": f"{report_data['optimized_sqm']:.2f} sqm ({report_data['cloth_width_mm']:g} mm cloth)",
+        "Fabric Needed": f"{report_data['optimized_sqm']:.2f} sqm",
         "Epoxy Required": f"{report_data['epoxy_kg']:.1f} kg"
     })
 
@@ -301,7 +304,11 @@ def create_pdf(report_data):
         "1. Surface Prep: Grit blast to SA 2.5; Profile >60 microns.",
         "2. Primer/Filler: Apply Prowrap Filler to defect area to restore OD.",
         f"3. Lamination: Saturate Carbon Cloth. Apply {report_data['num_plies']} layers per band.",
-        f"4. Wrapping: Use {report_data['num_bands']} band(s) of {report_data['cloth_width_mm']:g} mm cloth.",
+        "4. Wrapping: Install "
+        f"{report_data['num_bands_500']} x 500 mm and "
+        f"{report_data['num_bands_300']} x 300 mm axial band(s), "
+        f"{report_data['num_bands']} total. Maintain the fixed 50 mm "
+        "inter-band stitch overlap.",
         f"5. Quality Control: Minimum average Shore D hardness of {PROWRAP['shore_d_min']} required."
     ]
 
@@ -351,11 +358,13 @@ def run_calculation(
     cyclic_derating_factor=1.0,
     internal_corrosion_rate=0.0,
     axial_load_case=0,
-    cloth_width_mm=PROWRAP["cloth_width_mm"],
+    cloth_width_1_mm=300,
+    cloth_width_2_mm=300,
     defect_length_basis=ACTUAL_DEFECT_LENGTH,
     individual_defects=(),
 ):
     try:
+        cloth_widths_mm = (cloth_width_1_mm, cloth_width_2_mm)
         report_data = calculate_repair(
             customer,
             location,
@@ -377,7 +386,7 @@ def run_calculation(
             component_type=component_type,
             cyclic_derating_factor=cyclic_derating_factor,
             axial_load_case=axial_load_case,
-            cloth_width_mm=cloth_width_mm,
+            cloth_widths_mm=cloth_widths_mm,
             defect_length_basis=defect_length_basis,
             individual_defects=individual_defects,
         )
@@ -432,7 +441,9 @@ def run_calculation(
 
     if typea_class3_result:
         report_data = apply_type_a_class3_result_to_repair(
-            report_data, typea_class3_result, cloth_width_mm=cloth_width_mm
+            report_data,
+            typea_class3_result,
+            cloth_widths_mm=cloth_widths_mm,
         )
         num_plies = report_data["num_plies"]
         final_thickness = report_data["final_thickness"]
@@ -441,20 +452,26 @@ def run_calculation(
         optimized_sqm = report_data["optimized_sqm"]
         epoxy_kg = report_data["epoxy_kg"]
         is_upgraded = report_data["is_upgraded"]
+    num_bands_500 = report_data["num_bands_500"]
+    num_bands_300 = report_data["num_bands_300"]
     num_bands = report_data["num_bands"]
-    cloth_width_mm = report_data["cloth_width_mm"]
 
     st.success(f"✅ Calculation Complete")
 
     for warning_text in report_data.get("compliance_warnings", []):
         st.error(f"⚠️ **ISO 24817 COMPLIANCE:** {warning_text}")
 
-    m1, m2, m3, m4, m5 = st.columns(5)
+    m1, m2, m3, m4, m5, m6 = st.columns(6)
     m1.metric("Required Plies", f"{num_plies}", f"{final_thickness:.2f} mm")
     m2.metric("Req. Repair Length", f"{total_repair_length_calc:.0f} mm")
-    m3.metric("Procurement Length", f"{procurement_axial_length} mm")
-    m4.metric("Optimized Fabric", f"{optimized_sqm:.2f} m²")
-    m5.metric("Epoxy Needed", f"{epoxy_kg:.1f} kg")
+    m3.metric("Procurement Axial Length", f"{procurement_axial_length:g} mm")
+    m4.metric(
+        "Band Plan",
+        f"500: {num_bands_500} | 300: {num_bands_300}",
+        f"{num_bands} total bands",
+    )
+    m5.metric("Optimized Fabric", f"{optimized_sqm:.2f} m²")
+    m6.metric("Epoxy Needed", f"{epoxy_kg:.1f} kg")
 
     st.markdown("---")
     if num_plies == 2 and not is_upgraded:
@@ -662,8 +679,11 @@ def run_calculation(
             st.markdown(f"""
             - **Total Plies:** {num_plies} Layers
             - **Req. Length (ISO):** {total_repair_length_calc:.0f} mm
-            - **Axial Band(s):** {num_bands} x {cloth_width_mm:g} mm
-            - **Procurement Len:** {procurement_axial_length} mm
+            - **500 mm Bands:** {num_bands_500}
+            - **300 mm Bands:** {num_bands_300}
+            - **Total Axial Bands:** {num_bands}
+            - **Procurement Axial Length:** {procurement_axial_length:g} mm
+            - **Fabric Needed:** {optimized_sqm:.2f} m²
             - **Epoxy Total:** {epoxy_kg:.1f} kg
             """)
             # Add the calculation-basis note to the UI dynamically.
@@ -675,7 +695,7 @@ def run_calculation(
         1. **Surface Prep:** Grit blast to **SA 2.5**; Profile **>60µm**.
         2. **Primer/Filler:** Apply Prowrap Filler to defect area to restore OD.
         3. **Lamination:** Saturate Carbon Cloth. Apply **{num_plies} layers** per band.
-        4. **Wrapping:** Use **{num_bands} band(s)** of {cloth_width_mm:g} mm cloth.
+        4. **Wrapping:** Install **{num_bands_500} x 500 mm** and **{num_bands_300} x 300 mm** axial band(s), **{num_bands} total**. Maintain the fixed 50 mm inter-band stitch overlap.
         5. **Quality Control:** Minimum average Shore D hardness of **{PROWRAP['shore_d_min']}** required.
         """)
 
@@ -856,10 +876,19 @@ def main():
             "Axial load case", [NEUTRAL_CHOICE, 0, 1], key="axial_load_case", on_change=reset_calc,
             help="1 = severed-pipe/guillotine load credible, or above-ground pipeline near bends/closures: axial loads calculated per ISO Formula 4. 0 = buried restrained pipeline: axial loads not taken into account.")
         
-        cloth_width_mm = st.sidebar.number_input(
-            "Prowrap CF cloth band width [mm]", min_value=0.0,
-            key="cloth_width_mm", on_change=reset_calc,
-            help="Installation/procurement width. It must be greater than the fixed 50 mm inter-band stitch overlap and be an approved Prowrap cloth width.",
+        cloth_width_1_mm = st.sidebar.selectbox(
+            "Prowrap CF Cloth Width 1 [mm]",
+            [NEUTRAL_CHOICE, 300, 500],
+            key="cloth_width_1_mm",
+            on_change=reset_calc,
+            help="Select the first available approved axial cloth width.",
+        )
+        cloth_width_2_mm = st.sidebar.selectbox(
+            "Prowrap CF Cloth Width 2 [mm]",
+            [NEUTRAL_CHOICE, 300, 500],
+            key="cloth_width_2_mm",
+            on_change=reset_calc,
+            help="Select the second available approved axial cloth width. Select the same value twice when only one width is available.",
         )
         missing_fields = missing_required_fields(st.session_state)
         form_ready = not missing_fields
@@ -906,7 +935,8 @@ def main():
                 cyclic_derating_factor,
                 corr_rate,
                 axial_load_case,
-                cloth_width_mm,
+                cloth_width_1_mm,
+                cloth_width_2_mm,
                 defect_length_basis=defect_length_basis,
                 individual_defects=individual_defects,
             )

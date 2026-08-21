@@ -49,6 +49,22 @@ class ReportWordingTest(unittest.TestCase):
                     for page in pages
                 ))
 
+    def test_pdf_reports_each_band_width_without_a_singular_installation_claim(self):
+        report = calculate_repair(
+            **default_inputs(length=348.246, cloth_widths_mm=(500, 300)),
+        )
+
+        text = self._pdf_text(create_pdf(report))
+
+        self.assertIn("Continuous Repair Length (ISO): 637 mm", text)
+        self.assertIn("500 mm Bands: 1", text)
+        self.assertIn("300 mm Bands: 1", text)
+        self.assertIn("Total Axial Bands: 2", text)
+        self.assertIn("Procurement Axial Length: 800 mm", text)
+        self.assertIn("Fabric Needed:", text)
+        self.assertIn("Epoxy Required:", text)
+        self.assertNotIn("band(s) of", text)
+
     def test_dent_with_crack_pdf_reports_full_pressure_laminate_basis(self):
         text = self._dent_report_text("Dent w/crack")
 

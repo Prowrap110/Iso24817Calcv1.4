@@ -28,7 +28,8 @@ INPUT_DEFAULTS = {
     "component_type": NEUTRAL_CHOICE,
     "cyclic_derating_factor": None,
     "axial_load_case": None,
-    "cloth_width_mm": None,
+    "cloth_width_1_mm": NEUTRAL_CHOICE,
+    "cloth_width_2_mm": NEUTRAL_CHOICE,
     "defect_length_basis": NEUTRAL_CHOICE,
     "manual_defect_rows": [],
 }
@@ -52,7 +53,8 @@ REQUIRED_FIELD_LABELS = (
     ("component_type", "Component type"),
     ("cyclic_derating_factor", "Cyclic derating factor"),
     ("axial_load_case", "Axial load case"),
-    ("cloth_width_mm", "Prowrap CF cloth band width [mm]"),
+    ("cloth_width_1_mm", "Prowrap CF Cloth Width 1 [mm]"),
+    ("cloth_width_2_mm", "Prowrap CF Cloth Width 2 [mm]"),
 )
 
 
