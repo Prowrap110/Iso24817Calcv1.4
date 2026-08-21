@@ -13,6 +13,8 @@ REPOSITORY_DIRECTORY = Path(__file__).resolve().parent
 PROVENANCE_PATH = REPOSITORY_DIRECTORY / "PROVENANCE.json"
 README_PATH = REPOSITORY_DIRECTORY / "README.md"
 V12_IMPORTED_COMMIT = "91b68d64508a4786934f0e17f2aea0dbebf745a7"
+V12_IMPORTED_TREE = "f8d0b2303097fc7f738f295c71790370c6131de8"
+V12_ARCHIVE_NAME = "PROWRAP-Calculator-v1.2-macOS-arm64-M4-M5.zip"
 ENGINE_MODULES = (
     "band_procurement.py",
     "b31g.py",
@@ -72,10 +74,23 @@ class V13AcceptanceTest(unittest.TestCase):
             provenance = json.load(provenance_file)
 
         self.assertEqual(provenance["imported_v12"]["commit"], V12_IMPORTED_COMMIT)
+        self.assertEqual(provenance["imported_v12"]["tree"], V12_IMPORTED_TREE)
+        self.assertEqual(provenance["imported_v12"]["archive_name"], V12_ARCHIVE_NAME)
         self.assertEqual(provenance["product"]["version"], "1.3")
         self.assertEqual(
             provenance["product"]["bundle_identifier"],
             "com.protapglobal.prowrap.iso24817calculator.v13",
+        )
+        runtime = provenance["runtime"]
+        self.assertEqual(runtime["python_implementation"], "CPython")
+        self.assertEqual(runtime["python_version"], "3.14.3")
+        self.assertEqual(runtime["architecture"], "arm64")
+        self.assertEqual(runtime["requirements_file"], "requirements.txt")
+        self.assertEqual(
+            runtime["requirements_sha256"],
+            hashlib.sha256(
+                (REPOSITORY_DIRECTORY / runtime["requirements_file"]).read_bytes()
+            ).hexdigest(),
         )
         for module_name in ENGINE_MODULES:
             with self.subTest(module_name=module_name):

@@ -15,6 +15,7 @@
     "python_implementation": "CPython",
     "python_version": "3.14.3",
     "architecture": "arm64",
+    "requirements_file": "requirements.txt",
     "requirements_sha256": "10a0a1a54f02444ed10afa4ef969940f1f5422e4d80b373efc05d234c1871ee8"
   },
   "engine_module_sha256": {
