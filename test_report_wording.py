@@ -16,6 +16,7 @@ from prowrap_calculations import (
     calculate_type_a_class3_prowrap_check,
     substrate_credit_bar_for_iso_check,
 )
+from strain_limits import LCL_STRAIN_LIMIT, STANDARD_STRAIN_LIMIT
 from test_current_calculation_baseline import default_inputs
 
 
@@ -53,6 +54,43 @@ class ReportWordingTest(unittest.TestCase):
                     and "5. Quality Control:" in page
                     for page in pages
                 ))
+
+    def test_standard_pdf_traces_the_standard_route_without_lcl_claims(self):
+        report = calculate_repair(
+            **default_inputs(strain_limit_basis=STANDARD_STRAIN_LIMIT),
+        )
+
+        text = self._pdf_text(create_pdf(report))
+
+        for expected in (
+            "Strain Limit Basis: Standard (0.0025)",
+            "Base Strain (epsilon_c0): 0.250%",
+            "Final Design Strain (epsilon_c):",
+            "Circumferential Strain Route: standard_formula_10",
+            "Formula 10 standard route",
+        ):
+            with self.subTest(expected=expected):
+                self.assertIn(expected, text)
+        self.assertNotIn("Formula 11 performance route", text)
+        self.assertNotIn("0.55%", text)
+
+    def test_lcl_pdf_identifies_formula_11_and_the_selected_base_strain(self):
+        report = calculate_repair(
+            **default_inputs(strain_limit_basis=LCL_STRAIN_LIMIT),
+        )
+
+        text = self._pdf_text(create_pdf(report))
+
+        for expected in (
+            "Strain Limit Basis: LCL (0.0055)",
+            "Base Strain (epsilon_c0): 0.550%",
+            "Final Design Strain (epsilon_c):",
+            "Circumferential Strain Route: lcl_formula_11_performance",
+            "Formula 11 performance route",
+            "0.55%",
+        ):
+            with self.subTest(expected=expected):
+                self.assertIn(expected, text)
 
     def test_pdf_reports_each_band_width_without_a_singular_installation_claim(self):
         report = calculate_repair(

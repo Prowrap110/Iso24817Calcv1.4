@@ -20,6 +20,7 @@ CALCULATOR_MODULES = (
     "iso24817_typea_class3.py",
     "prowrap_calculations.py",
     "prowrap_materials.py",
+    "strain_limits.py",
 )
 
 

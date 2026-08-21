@@ -25,6 +25,7 @@ class StreamlitFormSubmissionTest(unittest.TestCase):
         wall=9.53,
         yield_strength=359.0,
         defect_length=100.0,
+        strain_limit_basis="LCL (0.0055)",
     ):
         for key, value in {
             "customer": "PROTAP",
@@ -53,6 +54,8 @@ class StreamlitFormSubmissionTest(unittest.TestCase):
         app.selectbox(key="component_type").select("Straight")
         app.selectbox(key="axial_load_case").select(0)
         app.run()
+        if strain_limit_basis is not None:
+            app.selectbox(key="strain_limit_basis").select(strain_limit_basis)
         if mechanism == "Corrosion":
             app.selectbox(key="defect_length_basis").select(
                 defect_length_basis
@@ -91,6 +94,17 @@ class StreamlitFormSubmissionTest(unittest.TestCase):
             with self.subTest(selector=selector.key):
                 self.assertEqual(selector.options, ["Select…", "300", "500"])
                 self.assertEqual(selector.value, "Select…")
+
+    def test_strain_limit_selector_starts_neutral_with_only_approved_routes(self):
+        app = AppTest.from_file("PWR110Calculator.py").run()
+
+        selector = app.selectbox(key="strain_limit_basis")
+
+        self.assertEqual(
+            selector.options,
+            ["Select…", "Standard (0.0025)", "LCL (0.0055)"],
+        )
+        self.assertEqual(selector.value, "Select…")
 
     def test_all_width_plans_render_exact_effective_coverage(self):
         for widths, expected_plan in (
@@ -157,6 +171,26 @@ class StreamlitFormSubmissionTest(unittest.TestCase):
         ):
             with self.subTest(expected=expected):
                 self.assertIn(expected, rendered)
+        self.assertEqual(list(app.exception), [])
+
+    def test_standard_selection_drives_baseline_and_optional_class3_routes(self):
+        app = AppTest.from_file("PWR110Calculator.py").run()
+        self._enter_controlling_typea_class3_mixed_width_form(app)
+        app.selectbox(key="strain_limit_basis").select("Standard (0.0025)").run()
+
+        self._calculate_button(app).click().run()
+
+        rendered = self._rendered_markdown(app)
+        for expected in (
+            "**Strain Limit Basis:** Standard (0.0025)",
+            "**Base Strain (epsilon_c0):** 0.250%",
+            "**Final Design Strain (epsilon_c):**",
+            "**Circumferential Strain Route:** standard_formula_10",
+            "**Basis:** Standard Formula 10 route (epsilon_c0 = 0.25%).",
+        ):
+            with self.subTest(expected=expected):
+                self.assertIn(expected, rendered)
+        self.assertNotIn("Formula 11 performance route", rendered)
         self.assertEqual(list(app.exception), [])
 
     def test_mechanism_selector_uses_the_two_canonical_dent_choices(self):
@@ -479,7 +513,9 @@ class StreamlitFormSubmissionTest(unittest.TestCase):
 
     def test_incomplete_calculate_is_actionable_and_reports_exact_missing_fields(self):
         app = AppTest.from_file("PWR110Calculator.py").run()
-        self._enter_complete_form_except_cloth_width(app)
+        self._enter_complete_form_except_cloth_width(
+            app, strain_limit_basis=None,
+        )
 
         calculate = self._calculate_button(app)
         self.assertFalse(calculate.disabled)
@@ -495,12 +531,13 @@ class StreamlitFormSubmissionTest(unittest.TestCase):
         self.assertEqual(
             [error.value for error in app.error],
             [
-                "Missing required fields: Prowrap CF Cloth Width 1 [mm], "
+                "Missing required fields: Strain Limit, Prowrap CF Cloth Width 1 [mm], "
                 "Prowrap CF Cloth Width 2 [mm].",
             ],
         )
 
         self._select_cloth_widths(app, 300, 300)
+        app.selectbox(key="strain_limit_basis").select("LCL (0.0055)").run()
 
         self.assertEqual(self._calculate_button(app).proto.type, "primary")
         self._calculate_button(app).click().run()

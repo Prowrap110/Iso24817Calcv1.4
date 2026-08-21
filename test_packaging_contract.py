@@ -32,6 +32,7 @@ CALCULATOR_MODULES = (
     "iso24817_typea_class3.py",
     "prowrap_calculations.py",
     "prowrap_materials.py",
+    "strain_limits.py",
 )
 
 
@@ -54,12 +55,13 @@ class ConstructorRecorder:
 
 
 class PackagingContractTest(unittest.TestCase):
-    def test_calculator_modules_include_v13_mixed_width_engine(self):
+    def test_calculator_modules_include_required_calculation_inputs(self):
         contract = self.load_contract()
 
         self.assertIn("app_identity.py", contract.CALCULATOR_MODULES)
         self.assertIn("band_procurement.py", contract.CALCULATOR_MODULES)
         self.assertIn("corrosion_defects.py", contract.CALCULATOR_MODULES)
+        self.assertIn("strain_limits.py", contract.CALCULATOR_MODULES)
 
     def load_contract(self):
         if not CONTRACT_PATH.is_file():
