@@ -68,6 +68,16 @@ class StreamlitFormSubmissionTest(unittest.TestCase):
         app.selectbox(key="cloth_width_1_mm").select(first)
         app.selectbox(key="cloth_width_2_mm").select(second).run()
 
+    def _enter_controlling_typea_class3_mixed_width_form(self, app):
+        self._enter_complete_form_except_cloth_width(
+            app,
+            mechanism="Dent w/crack",
+            remaining_wall=9.53,
+            defect_length=140.0,
+        )
+        app.checkbox(key="show_typea_class3_check").set_value(True)
+        self._select_cloth_widths(app, 500, 300)
+
     def test_cloth_width_selectors_start_neutral_with_only_approved_widths(self):
         app = AppTest.from_file("PWR110Calculator.py").run()
         selectors = {
@@ -107,8 +117,40 @@ class StreamlitFormSubmissionTest(unittest.TestCase):
                     f"**Total Axial Bands:** {expected_bands[2]}", rendered,
                 )
                 self.assertIn("**Req. Length (ISO):** 637 mm", rendered)
+                if widths == (500, 300):
+                    for expected in (
+                        "**Procurement Axial Length:** 800 mm",
+                        "**Fabric Needed:** 3.45 m²",
+                        "**Epoxy Total:** 4.1 kg",
+                        "4. **Wrapping:** Install **1 x 500 mm** and "
+                        "**1 x 300 mm** axial band(s), **2 total**. "
+                        "Maintain the fixed 50 mm inter-band stitch overlap.",
+                    ):
+                        with self.subTest(widths=widths, expected=expected):
+                            self.assertIn(expected, rendered)
                 self.assertNotIn("band(s) of", rendered)
                 self.assertEqual(list(app.exception), [])
+
+    def test_controlling_typea_class3_uses_reversed_widths_for_mixed_procurement(self):
+        app = AppTest.from_file("PWR110Calculator.py").run()
+        self._enter_controlling_typea_class3_mixed_width_form(app)
+
+        self._calculate_button(app).click().run()
+
+        rendered = self._rendered_markdown(app)
+        for expected in (
+            "**Structural Control:** ISO Type A / Class 3 controls displayed plies.",
+            "**Req. Length (ISO):** 637 mm",
+            "**500 mm Bands:** 1",
+            "**300 mm Bands:** 1",
+            "**Total Axial Bands:** 2",
+            "**Procurement Axial Length:** 800 mm",
+            "**Fabric Needed:** 10.34 m²",
+            "**Epoxy Total:** 12.4 kg",
+        ):
+            with self.subTest(expected=expected):
+                self.assertIn(expected, rendered)
+        self.assertEqual(list(app.exception), [])
 
     def test_mechanism_selector_uses_the_two_canonical_dent_choices(self):
         app = AppTest.from_file("PWR110Calculator.py").run()

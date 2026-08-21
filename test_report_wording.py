@@ -61,8 +61,14 @@ class ReportWordingTest(unittest.TestCase):
         self.assertIn("300 mm Bands: 1", text)
         self.assertIn("Total Axial Bands: 2", text)
         self.assertIn("Procurement Axial Length: 800 mm", text)
-        self.assertIn("Fabric Needed:", text)
-        self.assertIn("Epoxy Required:", text)
+        self.assertIn("Fabric Needed: 3.45 sqm", text)
+        self.assertIn("Epoxy Required: 4.1 kg", text)
+        self.assertIn(
+            "4. Wrapping: Install 1 x 500 mm and 1 x 300 mm axial "
+            "band(s), 2 total. Maintain the fixed 50 mm inter-band stitch "
+            "overlap.",
+            " ".join(text.split()),
+        )
         self.assertNotIn("band(s) of", text)
 
     def test_dent_with_crack_pdf_reports_full_pressure_laminate_basis(self):
