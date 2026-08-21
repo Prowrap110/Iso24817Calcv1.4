@@ -16,7 +16,7 @@ class V12AcceptanceTest(unittest.TestCase):
             od=1016.0, wall=12.0, pressure=104.9, temp=40.0,
             defect_type="Corrosion", defect_loc="External", length=1000.0,
             rem_wall=9.652, yield_strength=450.0, design_factor=0.72,
-            design_life=20, cloth_width_mm=500.0,
+            design_life=20, cloth_widths_mm=(500.0, 500.0),
         )
         actual = calculate_repair(
             **base, defect_length_basis=ACTUAL_DEFECT_LENGTH,

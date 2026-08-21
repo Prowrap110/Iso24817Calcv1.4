@@ -48,7 +48,12 @@ class CurrentCalculationBaselineTest(unittest.TestCase):
         # Formula (20): defect + 2*overlap + 2*taper.
         self.assertAlmostEqual(result["iso_length"], 388.933816016055)
         self.assertEqual(result["num_bands"], 2)
+        self.assertEqual(result["num_bands_500"], 0)
+        self.assertEqual(result["num_bands_300"], 2)
         self.assertEqual(result["proc_length"], 600)
+        self.assertEqual(result["covered_length_mm"], 550)
+        self.assertAlmostEqual(result["excess_coverage_mm"], 161.066183983945)
+        self.assertEqual(result["cloth_widths_mm"], (300.0, 300.0))
         self.assertAlmostEqual(result["optimized_sqm"], 2.585405090198256)
         self.assertAlmostEqual(result["epoxy_kg"], 3.1024861082379074)
         self.assertEqual(result["defect_length_basis"], "Actual defect length")
