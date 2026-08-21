@@ -98,3 +98,86 @@ Output: clean (exit 0).
 
 None. The retained legacy single-width keyword is deliberately limited to
 compatibility while Task 3 migrates the unchanged UI to the two-width API.
+
+## Fix round 1: Test-strengthening evidence
+
+### Findings addressed
+
+1. The controlling Type A/Class 3 test now builds one deliberately fixed
+   300/300 baseline repair, then passes each target availability pair only to
+   `apply_type_a_class3_result_to_repair`. It asserts hand-derived 300/300,
+   500/500, 300/500, and 500/300 values for 500-band count, 300-band count,
+   total count, gross procurement length, covered length, excess coverage,
+   fabric area, and epoxy mass. The adapter can no longer reuse baseline
+   procurement without failing.
+2. The baseline-invariance suite now includes a real Type B leak case
+   (`length=25 mm`) across all four width pairs. It has populated Formula 12
+   repairability data, a passed D/12 status, and Type B life-cap/assumption
+   warnings. The test asserts these are identical together with all structural
+   outputs.
+
+### RED evidence by deliberate mutation
+
+After writing the strengthened tests, two temporary mutations were applied:
+
+- The Type A/Class 3 adapter was made to optimize using the fixed repair's
+  stale `cloth_widths_mm` instead of the pair supplied to the adapter.
+- The Type B baseline path was made to add one ply thickness only for the
+  500/500 availability pair.
+
+Command:
+
+```text
+python3 -m pytest -q test_cloth_width.py test_typea_class3_adapter.py
+```
+
+Output under the temporary mutations:
+
+```text
+2 failed, 12 passed in 0.46s
+```
+
+The adapter test failed because the fixed 300/300 procurement tuple
+`(0, 2, 2, 600.0, 550.0, 161.066183983945, 2.585405090198256,
+3.1024861082379074)` was returned where the literal 500/500 tuple was
+required. The Type B test failed because `final_thickness`, overlap, taper,
+ISO length, and associated status/warnings differed for 500/500. Both
+mutations were then removed; no production change was retained in this round.
+
+### GREEN and full verification
+
+Covering command:
+
+```text
+python3 -m pytest -q test_cloth_width.py test_typea_class3_adapter.py
+```
+
+Output:
+
+```text
+14 passed in 0.28s
+```
+
+Full-suite command:
+
+```text
+python3 -m pytest -q
+```
+
+Output:
+
+```text
+190 passed in 2.61s
+```
+
+`git diff --check` completed cleanly.
+
+### Fix-round self-review
+
+- The adapter test's initial repair is always 300/300; target pairs reach only
+  the adapter call, so stale baseline procurement is observable.
+- Each adapter target has an independent literal procurement/area/epoxy oracle.
+- The Type B fixture has non-null Formula 12 details, actual repairability and
+  D/12 status, plus Type B warnings; it no longer treats `None` as a proxy for
+  Type B invariance.
+- The temporary mutation diff was fully restored before GREEN verification.
