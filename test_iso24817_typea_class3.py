@@ -9,6 +9,12 @@ from strain_limits import LCL_STRAIN_LIMIT, STANDARD_STRAIN_LIMIT
 
 
 class Iso24817TypeAClass3Test(unittest.TestCase):
+    def test_public_inputs_reject_caller_supplied_lcl_value(self):
+        with self.assertRaisesRegex(
+            TypeError, "unexpected keyword argument 'long_term_strain_lcl'"
+        ):
+            TypeAClass3Inputs(long_term_strain_lcl=0.001)
+
     def test_lcl_default_uses_the_canonical_performance_route(self):
         result = calculate_type_a_class3(TypeAClass3Inputs())
 

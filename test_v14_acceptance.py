@@ -47,6 +47,34 @@ HISTORICAL_IDENTITY_DIRECTORIES = (
     Path("docs/superpowers/reports"),
     Path("docs/superpowers/specs"),
 )
+V13_LCL_REPRESENTATIVE_RESULT = {
+    "design_strain": 0.0027093406987252736,
+    "t_required": 6.361764257982379,
+    "num_plies": 8,
+    "final_thickness": 6.64,
+    "overlap_length": 144.6130392535272,
+    "taper_length": 33.199999999999996,
+    "iso_length": 455.6260785070544,
+    "num_bands_500": 0,
+    "num_bands_300": 2,
+    "num_bands": 2,
+    "proc_length": 600.0,
+    "covered_length_mm": 550.0,
+    "excess_coverage_mm": 94.373921492946,
+    "optimized_sqm": 6.894413573862017,
+    "epoxy_kg": 8.27329628863442,
+    "calc_method_thick": "Type A (Load Sharing)",
+    "calc_method_overlap": "Type A (Geometry Controlled)",
+    "thickness_check_ok": True,
+    "compliance_warnings": [
+        "Defect ID Actual/combined defect: B31G Level 1: the corroded pipe "
+        "alone is NOT acceptable at the design pressure (safe pressure P_S = "
+        "8.57 MPa < 12.00 MPa) - the composite repair is structural, not just "
+        "preventive."
+    ],
+    "p_steel_capacity": 8.57236634807408,
+    "p_composite_design": 3.4276336519259196,
+}
 
 
 def previous_product_identities() -> tuple[str, ...]:
@@ -211,22 +239,34 @@ class V14AcceptanceTest(unittest.TestCase):
             **inputs, strain_limit_basis=STANDARD_STRAIN_LIMIT
         )
 
-        self.assertEqual(lcl["circumferential_strain_route"], "lcl_formula_11_performance")
-        self.assertAlmostEqual(lcl["strain_limit_base"], 0.0055)
-        self.assertAlmostEqual(lcl["design_strain"], 0.0027093406987252736)
-        self.assertAlmostEqual(lcl["typea_design"]["eps_a"], 0.0016642155994655587)
-        self.assertAlmostEqual(lcl["p_steel_capacity"], 8.57236634807408)
-        self.assertAlmostEqual(lcl["p_composite_design"], 3.4276336519259196)
-        self.assertAlmostEqual(lcl["t_required"], 6.361764257982379)
-        self.assertEqual(lcl["num_plies"], 8)
-        self.assertAlmostEqual(lcl["final_thickness"], 6.64)
-        self.assertAlmostEqual(lcl["overlap_length"], 144.6130392535272)
-        self.assertAlmostEqual(lcl["iso_length"], 455.6260785070544)
+        self.assertEqual(
+            {
+                key: lcl[key]
+                for key in V13_LCL_REPRESENTATIVE_RESULT
+            },
+            V13_LCL_REPRESENTATIVE_RESULT,
+        )
+        self.assertEqual(
+            {
+                "circumferential_strain_route": lcl[
+                    "circumferential_strain_route"
+                ],
+                "strain_limit_basis": lcl["strain_limit_basis"],
+                "strain_limit_base": lcl["strain_limit_base"],
+                "axial_allowable_strain": lcl["typea_design"]["eps_a"],
+            },
+            {
+                "circumferential_strain_route": "lcl_formula_11_performance",
+                "strain_limit_basis": LCL_STRAIN_LIMIT,
+                "strain_limit_base": 0.0055,
+                "axial_allowable_strain": 0.0016642155994655587,
+            },
+        )
 
         self.assertEqual(standard["circumferential_strain_route"], "standard_formula_10")
         self.assertAlmostEqual(standard["strain_limit_base"], 0.0025)
         # Hand-derived Formula 10 value:
-        # 0.8 * (0.91875 * 0.0025 - abs(20 * (11.7e-6 - 13.36e-6))).
+        # 0.8 * (0.91875 * 0.0025 - abs(20 * (12e-6 - 10.34e-6))).
         self.assertAlmostEqual(standard["design_strain"], 0.00181094)
         self.assertAlmostEqual(standard["typea_design"]["eps_a"], 0.0016642155994655587)
         self.assertAlmostEqual(standard["p_steel_capacity"], 8.57236634807408)

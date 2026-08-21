@@ -254,7 +254,7 @@ def create_pdf(report_data):
         "Procurement Axial Length": f"{report_data['proc_length']:g} mm",
         "Design Factor": f"{report_data['design_factor']}",
         "Strain Limit Basis": report_data["strain_limit_basis"],
-        "Base Strain (epsilon_c0)": (
+        "Selected Base Strain": (
             f"{report_data['strain_limit_base'] * 100:.3f}%"
         ),
         "Final Design Strain (epsilon_c)": (
@@ -271,7 +271,7 @@ def create_pdf(report_data):
     if report_data["strain_limit_basis"] == LCL_STRAIN_LIMIT:
         standards_note = (
             "* Thickness per ISO 24817 Formula 11 performance route "
-            f"(base epsilon_c0 = 0.55%, Class 3, {report_data['design_life']} "
+            f"(epsilon_lt = 0.55%, Class 3, {report_data['design_life']} "
             "yr design life); axial extent per Formulae 18/20/21; minimum "
             "thickness per 7.5.14. "
         )
@@ -610,7 +610,7 @@ def run_calculation(
                 f"{report_data['strain_limit_basis']}"
             )
             st.write(
-                "**Base Strain (epsilon_c0):** "
+                "**Selected Base Strain:** "
                 f"{report_data['strain_limit_base'] * 100:.3f}%"
             )
             st.write(

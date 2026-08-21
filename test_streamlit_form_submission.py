@@ -183,7 +183,7 @@ class StreamlitFormSubmissionTest(unittest.TestCase):
         rendered = self._rendered_markdown(app)
         for expected in (
             "**Strain Limit Basis:** Standard (0.0025)",
-            "**Base Strain (epsilon_c0):** 0.250%",
+            "**Selected Base Strain:** 0.250%",
             "**Final Design Strain (epsilon_c):**",
             "**Circumferential Strain Route:** standard_formula_10",
             "**Basis:** Standard Formula 10 route (epsilon_c0 = 0.25%).",

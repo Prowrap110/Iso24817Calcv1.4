@@ -64,7 +64,7 @@ class ReportWordingTest(unittest.TestCase):
 
         for expected in (
             "Strain Limit Basis: Standard (0.0025)",
-            "Base Strain (epsilon_c0): 0.250%",
+            "Selected Base Strain: 0.250%",
             "Final Design Strain (epsilon_c):",
             "Circumferential Strain Route: standard_formula_10",
             "Formula 10 standard route",
@@ -83,7 +83,7 @@ class ReportWordingTest(unittest.TestCase):
 
         for expected in (
             "Strain Limit Basis: LCL (0.0055)",
-            "Base Strain (epsilon_c0): 0.550%",
+            "Selected Base Strain: 0.550%",
             "Final Design Strain (epsilon_c):",
             "Circumferential Strain Route: lcl_formula_11_performance",
             "Formula 11 performance route",
@@ -91,6 +91,8 @@ class ReportWordingTest(unittest.TestCase):
         ):
             with self.subTest(expected=expected):
                 self.assertIn(expected, text)
+        self.assertIn("epsilon_lt = 0.55%", text)
+        self.assertNotIn("base epsilon_c0 = 0.55%", text)
 
     def test_pdf_reports_each_band_width_without_a_singular_installation_claim(self):
         report = calculate_repair(

@@ -925,9 +925,6 @@ def calculate_type_a_class3_prowrap_check(
         axial_cte_per_c=PROWRAP["thermal_expansion_axial"] * 1e-6,
         lap_shear_mpa=PROWRAP["long_term_lap_shear"],
         layer_thickness_mm=PROWRAP["ply_thickness"],
-        use_performance_data=strain_limit_basis == LCL_STRAIN_LIMIT,
-        long_term_strain_lcl=eps_lt,
-        performance_data_source="Design life",
         # None lets the module compute the ISO Formula 4 end-thrust.
         equivalent_axial_load_n=None if axial_load_case == 1 else 0.0,
         cyclic_derating_factor=cyclic_derating_factor,
@@ -977,8 +974,32 @@ def apply_type_a_class3_result_to_repair(
     cloth_widths_mm=None,
 ):
     """Use the ISO Type A/Class 3 result as the controlling displayed repair design."""
+    repair_basis = normalize_strain_limit_basis(repair_data["strain_limit_basis"])
+    rigorous_basis = normalize_strain_limit_basis(
+        typea_class3_result["strain_limit_basis"]
+    )
+    if repair_basis != rigorous_basis:
+        raise ValueError(
+            "Strain limit basis mismatch: repair uses "
+            f"{repair_basis}, but Type A/Class 3 uses {rigorous_basis}."
+        )
+
+    typea_class3_result = dict(typea_class3_result)
+    typea_class3_result["strain_limit_basis"] = rigorous_basis
+    if "circumferential_strain_basis" in typea_class3_result:
+        typea_class3_result["circumferential_strain_basis"] = rigorous_basis
     updated = dict(repair_data)
     updated["iso_typea_class3"] = typea_class3_result
+    updated.update(
+        {
+            "strain_limit_basis": rigorous_basis,
+            "strain_limit_base": typea_class3_result["strain_limit_base"],
+            "design_strain": typea_class3_result["design_strain"],
+            "circumferential_strain_route": typea_class3_result[
+                "circumferential_strain_route"
+            ],
+        }
+    )
     if updated["p_composite_design"] <= 0:
         updated["iso_typea_class3_controls"] = False
         updated["iso_typea_class3_noncontrolling_reason"] = (

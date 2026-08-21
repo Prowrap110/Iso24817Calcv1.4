@@ -37,9 +37,6 @@ class TypeAClass3Inputs:
     substrate_cte_per_c: float = 12e-6
     lap_shear_mpa: float = 15.0
     layer_thickness_mm: float = 0.8
-    use_performance_data: bool = False
-    long_term_strain_lcl: float | None = None
-    performance_data_source: str = "Design life"
     strain_limit_basis: str = LCL_STRAIN_LIMIT
     equivalent_pressure_mpa: float | None = None
     equivalent_axial_load_n: float | None = None

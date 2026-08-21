@@ -212,4 +212,3 @@ Record commands, pass counts, representative Standard/LCL values, v1.3 parity re
 git add app_identity.py PROVENANCE.json README.md DESKTOP_BUILD.md EMPLOYEE_MAC_INSTALL.md PROWRAPCalculator.spec scripts/build_macos.sh packaging_contract.py test_v14_acceptance.py docs/superpowers/reports/2026-08-21-strain-basis-v14-verification.md
 git commit -m "chore: prepare calculator v1.4 release"
 ```
-

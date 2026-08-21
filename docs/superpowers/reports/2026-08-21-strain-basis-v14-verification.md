@@ -85,7 +85,7 @@ design pressure 120 bar, design temperature 40 degC, installation temperature
 The Standard value independently matches:
 
 ```text
-0.8 * (0.91875 * 0.0025 - abs(20 * (11.7e-6 - 13.36e-6)))
+0.8 * (0.91875 * 0.0025 - abs(20 * (12e-6 - 10.34e-6)))
 = 0.0018109399999999998
 ```
 

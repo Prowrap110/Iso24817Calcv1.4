@@ -100,4 +100,3 @@ Test-driven verification must prove:
 - Streamlit and PDF reporting identify the route accurately;
 - all pre-existing v1.3 regression tests continue to pass after their product
   identity and explicit input expectations are updated for v1.4.
-

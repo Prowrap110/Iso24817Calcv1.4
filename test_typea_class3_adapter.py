@@ -12,6 +12,94 @@ from strain_limits import LCL_STRAIN_LIMIT, STANDARD_STRAIN_LIMIT
 
 
 class TypeAClass3AdapterTest(unittest.TestCase):
+    def test_adapter_rejects_mismatched_strain_bases(self):
+        repair = calculate_repair(
+            customer="PROTAP",
+            location="Turkey",
+            report_no="24-152",
+            od=457.2,
+            wall=9.53,
+            pressure=120.0,
+            temp=40.0,
+            defect_type="Corrosion",
+            defect_loc="External",
+            length=100.0,
+            rem_wall=3.0,
+            yield_strength=359.0,
+            design_factor=0.72,
+            design_life=20,
+            strain_limit_basis=STANDARD_STRAIN_LIMIT,
+        )
+        iso_result = calculate_type_a_class3_prowrap_check(
+            od=repair["od"],
+            pressure_bar=repair["pressure"],
+            temp=repair["temp"],
+            rem_wall=repair["rem_wall_eol"],
+            design_life=repair["design_life"],
+            substrate_allowable_pressure_bar=substrate_credit_bar_for_iso_check(
+                repair
+            ),
+            nominal_wall_mm=repair["wall"],
+            strain_limit_basis=LCL_STRAIN_LIMIT,
+        )
+
+        with self.assertRaisesRegex(ValueError, "Strain limit basis mismatch"):
+            apply_type_a_class3_result_to_repair(repair, iso_result)
+
+    def test_adapter_uses_matching_rigorous_strain_metadata(self):
+        repair = calculate_repair(
+            customer="PROTAP",
+            location="Turkey",
+            report_no="24-152",
+            od=457.2,
+            wall=9.53,
+            pressure=120.0,
+            temp=40.0,
+            defect_type="Corrosion",
+            defect_loc="External",
+            length=100.0,
+            rem_wall=3.0,
+            yield_strength=359.0,
+            design_factor=0.72,
+            design_life=20,
+            strain_limit_basis=STANDARD_STRAIN_LIMIT,
+        )
+        iso_result = calculate_type_a_class3_prowrap_check(
+            od=repair["od"],
+            pressure_bar=repair["pressure"],
+            temp=repair["temp"],
+            rem_wall=repair["rem_wall_eol"],
+            design_life=repair["design_life"],
+            substrate_allowable_pressure_bar=substrate_credit_bar_for_iso_check(
+                repair
+            ),
+            nominal_wall_mm=repair["wall"],
+            cyclic_derating_factor=0.5,
+            strain_limit_basis=STANDARD_STRAIN_LIMIT,
+        )
+
+        updated = apply_type_a_class3_result_to_repair(repair, iso_result)
+
+        self.assertEqual(
+            {
+                key: updated[key]
+                for key in (
+                    "strain_limit_basis",
+                    "strain_limit_base",
+                    "design_strain",
+                    "circumferential_strain_route",
+                )
+            },
+            {
+                "strain_limit_basis": iso_result["strain_limit_basis"],
+                "strain_limit_base": iso_result["strain_limit_base"],
+                "design_strain": iso_result["design_strain"],
+                "circumferential_strain_route": iso_result[
+                    "circumferential_strain_route"
+                ],
+            },
+        )
+
     def test_manual_candidates_feed_conservative_wall_and_governing_credit_to_optional_check(self):
         repair = calculate_repair(
             customer="PROTAP",
