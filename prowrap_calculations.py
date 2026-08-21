@@ -11,6 +11,11 @@ from corrosion_defects import (
 from iso24817_typea_class3 import TypeAClass3Inputs, calculate_type_a_class3
 from prowrap_materials import PROWRAP
 from prowrap_mechanisms import DENT_NO_CRACK, DENT_WITH_CRACK, normalize_mechanism
+from strain_limits import (
+    LCL_STRAIN_LIMIT,
+    calculate_circumferential_allowable_strain,
+    normalize_strain_limit_basis,
+)
 
 # Carbon-steel substrate CTE used in the ISO 24817 Formula (10)
 # thermal-mismatch term (same value as the rigorous module default).
@@ -63,6 +68,7 @@ def baseline_type_a_design(
     component_type="Straight",
     cyclic_derating_factor=1.0,
     axial_load_case=0,
+    strain_limit_basis=LCL_STRAIN_LIMIT,
 ):
     """ISO 24817 Type A laminate design for the baseline route (closed form).
 
@@ -73,8 +79,8 @@ def baseline_type_a_design(
     - Formula (4):  pressure end-thrust Feq = pi/4 * p * D^2 when
       axial_load_case == 1 (severed-pipe / above-ground); Feq = 0 for the
       buried restrained case (axial_load_case == 0).
-    - Formula (11) performance route with the Formula (25) cyclic factor:
-      eps_c = fc * fperf * fT2 * eps_lt (PRW110 design-life data, Class 3).
+    - Selected Standard Formula (10) or LCL Formula (11) circumferential
+      strain route with the Formula (25) cyclic factor.
     - Formula (10): axial allowable strain with the installation-temperature
       thermal-mismatch term, eps_a = fc * (fT1*eps_a0 - |dT*(alpha_s - alpha_a)|).
     - Formula (5) hoop thickness (closed form, live pressure = 0) and the
@@ -90,16 +96,22 @@ def baseline_type_a_design(
     nu = PROWRAP["poisson_circ"]
     ply = PROWRAP["ply_thickness"]
     tau = PROWRAP["long_term_lap_shear"]
-    eps_lt = PROWRAP.get("long_term_strain_lcl", PROWRAP.get("long_term_strain_20y"))
-
-    fperf = 0.76 * 10 ** (-0.00273 * design_life_years)
-    # fT1 == fT2 here: Ttest == Tamb in the PRW110 qualification, so both
-    # Table 8 polynomials reduce to the same argument Tm - Td.
-    ft_delta = PROWRAP["max_temp"] - design_temp_c
-    ft = 0.0000625 * ft_delta**2 + 0.00125 * ft_delta + 0.7
-
-    # Formula (11) + Formula (25) cyclic derating.
-    eps_c = cyclic_derating_factor * fperf * ft * eps_lt
+    strain_result = calculate_circumferential_allowable_strain(
+        strain_limit_basis=strain_limit_basis,
+        design_life_years=design_life_years,
+        design_temperature_c=design_temp_c,
+        installation_temperature_c=installation_temp_c,
+        max_repair_temperature_c=PROWRAP["max_temp"],
+        ambient_test_temperature_c=20.0,
+        qualification_test_temperature_c=20.0,
+        steel_cte_per_c=STEEL_CTE_PER_C,
+        hoop_cte_per_c=PROWRAP["thermal_expansion_circ"] * 1e-6,
+        cyclic_derating_factor=cyclic_derating_factor,
+    )
+    eps_lt = strain_result.base_strain
+    fperf = strain_result.performance_factor
+    ft = strain_result.temperature_factor
+    eps_c = strain_result.final_strain
 
     # Formula (10) axial allowable with installation-temperature mismatch.
     if ea > 0.5 * ec:
@@ -112,8 +124,6 @@ def baseline_type_a_design(
         ft * eps_a0 - abs(dt_install * (STEEL_CTE_PER_C - alpha_a))
     )
 
-    if eps_c <= 0:
-        raise ValueError("Calculated circumferential allowable strain is <= 0.")
     if eps_a <= 0:
         raise ValueError(
             "Calculated axial allowable strain is <= 0 (installation-to-design "
@@ -163,6 +173,11 @@ def baseline_type_a_design(
         "ft": ft,
         "eps_lt": eps_lt,
         "eps_c": eps_c,
+        "strain_limit_basis": strain_result.strain_limit_basis,
+        "strain_limit_base": strain_result.base_strain,
+        "design_strain": strain_result.final_strain,
+        "circumferential_strain_route": strain_result.route,
+        "circumferential_strain_result": strain_result,
         "eps_a0": eps_a0,
         "eps_a": eps_a,
         "feq_n": feq,
@@ -342,6 +357,7 @@ def calculate_repair(
     cloth_width_mm=None,
     defect_length_basis=ACTUAL_DEFECT_LENGTH,
     individual_defects=(),
+    strain_limit_basis=LCL_STRAIN_LIMIT,
 ):
     """Calculate repair outputs (baseline route).
 
@@ -388,6 +404,7 @@ def calculate_repair(
             "or equal to 1."
         )
     baseline_component_factor(component_type)  # validates component type
+    strain_limit_basis = normalize_strain_limit_basis(strain_limit_basis)
     stitching_overlap_mm = PROWRAP["stitching_overlap_mm"]
     cloth_widths_mm = _selected_cloth_widths(cloth_widths_mm, cloth_width_mm)
 
@@ -453,16 +470,22 @@ def calculate_repair(
 
     safety_factor = 1.0 / design_factor
 
-    # ISO 24817 allowable strain, 7.5.6 performance route (Formula 11):
-    # eps_c = fc * fperf * fT2 * eps_lt, with Class 3 design-life-data fperf
-    # (Table 10), the Table 8 polynomial for fT2 (Ttest == Tamb in the
-    # PRW110 qualification, so the argument reduces to Tm - Td) and the
-    # Formula (25) cyclic derating factor fc.
-    eps_lt = PROWRAP.get("long_term_strain_lcl", PROWRAP.get("long_term_strain_20y"))
-    fperf = 0.76 * 10 ** (-0.00273 * design_life)
-    ft2_delta = PROWRAP["max_temp"] - temp
-    temp_factor = 0.0000625 * ft2_delta**2 + 0.00125 * ft2_delta + 0.7
-    design_strain = cyclic_derating_factor * fperf * temp_factor * eps_lt
+    strain_result = calculate_circumferential_allowable_strain(
+        strain_limit_basis=strain_limit_basis,
+        design_life_years=design_life,
+        design_temperature_c=temp,
+        installation_temperature_c=installation_temp,
+        max_repair_temperature_c=PROWRAP["max_temp"],
+        ambient_test_temperature_c=20.0,
+        qualification_test_temperature_c=20.0,
+        steel_cte_per_c=STEEL_CTE_PER_C,
+        hoop_cte_per_c=PROWRAP["thermal_expansion_circ"] * 1e-6,
+        cyclic_derating_factor=cyclic_derating_factor,
+    )
+    eps_lt = strain_result.base_strain
+    fperf = strain_result.performance_factor
+    temp_factor = strain_result.temperature_factor
+    design_strain = strain_result.final_strain
 
     pressure_mpa = pressure * 0.1
 
@@ -578,6 +601,7 @@ def calculate_repair(
             component_type=component_type,
             cyclic_derating_factor=cyclic_derating_factor,
             axial_load_case=axial_load_case,
+            strain_limit_basis=strain_limit_basis,
         )
         t_required = typea_design["tdesign_final_mm"]
     elif p_composite_design > 0:
@@ -799,6 +823,9 @@ def calculate_repair(
         "safety_factor": safety_factor,
         "temp_factor": temp_factor,
         "design_strain": design_strain,
+        "strain_limit_basis": strain_result.strain_limit_basis,
+        "strain_limit_base": strain_result.base_strain,
+        "circumferential_strain_route": strain_result.route,
         "pressure_mpa": pressure_mpa,
         "p_steel_capacity": p_steel_capacity,
         "p_composite_design": p_composite_design,
@@ -864,6 +891,7 @@ def calculate_type_a_class3_prowrap_check(
     cyclic_derating_factor=1.0,
     nominal_wall_mm=None,
     axial_load_case=0,
+    strain_limit_basis=LCL_STRAIN_LIMIT,
 ):
     """Run the isolated ISO Type A/Class 3 route using PRW110 performance data.
 
@@ -874,10 +902,10 @@ def calculate_type_a_class3_prowrap_check(
           bends/closures: axial loads calculated per ISO Formula 4
           (pressure end-thrust pi/4 * p * D^2).
 
-    Uses the ISO 24817 7.5.6 performance route (Formula 11,
-    eps_c = fperf * fT2 * eps_lt) when PRW110 long-term strain LCL data is
-    present in the material dataset; otherwise falls back to Table 9 strains.
+    Uses the selected canonical Standard Formula (10) or PRW110 LCL Formula
+    (11) route for circumferential allowable strain.
     """
+    strain_limit_basis = normalize_strain_limit_basis(strain_limit_basis)
     eps_lt = PROWRAP.get("long_term_strain_lcl", PROWRAP.get("long_term_strain_20y"))
     inputs = TypeAClass3Inputs(
         pressure_mpa=pressure_bar * 0.1,
@@ -897,7 +925,7 @@ def calculate_type_a_class3_prowrap_check(
         axial_cte_per_c=PROWRAP["thermal_expansion_axial"] * 1e-6,
         lap_shear_mpa=PROWRAP["long_term_lap_shear"],
         layer_thickness_mm=PROWRAP["ply_thickness"],
-        use_performance_data=eps_lt is not None,
+        use_performance_data=strain_limit_basis == LCL_STRAIN_LIMIT,
         long_term_strain_lcl=eps_lt,
         performance_data_source="Design life",
         # None lets the module compute the ISO Formula 4 end-thrust.
@@ -905,6 +933,7 @@ def calculate_type_a_class3_prowrap_check(
         cyclic_derating_factor=cyclic_derating_factor,
         component_type=component_type,
         nominal_wall_mm=nominal_wall_mm,
+        strain_limit_basis=strain_limit_basis,
     )
     result = calculate_type_a_class3(inputs)
     result["input_summary"] = {
@@ -914,11 +943,12 @@ def calculate_type_a_class3_prowrap_check(
         "hoop_modulus_mpa": PROWRAP["modulus_circ"],
         "axial_modulus_mpa": PROWRAP["modulus_axial"],
         "lap_shear_mpa": PROWRAP["long_term_lap_shear"],
-        "long_term_strain_lcl": eps_lt,
+        "long_term_strain_lcl": eps_lt if strain_limit_basis == LCL_STRAIN_LIMIT else None,
+        "strain_limit_basis": strain_limit_basis,
         "performance_data": (
             f"Formula 11 performance route, eps_lt={eps_lt} (design-life data)"
-            if eps_lt is not None
-            else "not used - Table 9 fallback"
+            if strain_limit_basis == LCL_STRAIN_LIMIT
+            else "Standard Formula 10 route, epsilon_c0=0.0025"
         ),
     }
     return result

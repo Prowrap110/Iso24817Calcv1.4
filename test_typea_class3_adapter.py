@@ -8,6 +8,7 @@ from prowrap_calculations import (
     substrate_credit_bar_for_iso_check,
 )
 from prowrap_materials import PROWRAP
+from strain_limits import LCL_STRAIN_LIMIT, STANDARD_STRAIN_LIMIT
 
 
 class TypeAClass3AdapterTest(unittest.TestCase):
@@ -65,7 +66,10 @@ class TypeAClass3AdapterTest(unittest.TestCase):
             cyclic_derating_factor=1.0,
         )
 
-        self.assertEqual(result["circumferential_strain_basis"], "performance_data")
+        self.assertEqual(result["circumferential_strain_basis"], LCL_STRAIN_LIMIT)
+        self.assertEqual(result["strain_limit_basis"], LCL_STRAIN_LIMIT)
+        self.assertEqual(result["strain_limit_base"], 0.0055)
+        self.assertEqual(result["circumferential_strain_route"], "lcl_formula_11_performance")
         self.assertAlmostEqual(result["peq_mpa"], 5.0)
         self.assertAlmostEqual(result["long_term_strain_lcl"], PROWRAP["long_term_strain_20y"])
         self.assertAlmostEqual(result["input_summary"]["pressure_bar"], 50.0)
@@ -75,6 +79,17 @@ class TypeAClass3AdapterTest(unittest.TestCase):
         self.assertIn("Formula 11 performance route", result["input_summary"]["performance_data"])
         self.assertGreater(result["tdesign_final_mm"], 0)
         self.assertGreaterEqual(result["layer_count"], 1)
+
+    def test_adapter_passes_standard_selection_to_the_canonical_engine(self):
+        result = calculate_type_a_class3_prowrap_check(
+            od=457.2, pressure_bar=120.0, temp=40.0, rem_wall=3.0,
+            design_life=20, strain_limit_basis=STANDARD_STRAIN_LIMIT,
+        )
+
+        self.assertEqual(result["strain_limit_basis"], STANDARD_STRAIN_LIMIT)
+        self.assertEqual(result["strain_limit_base"], 0.0025)
+        self.assertEqual(result["design_strain"], result["eps_c"])
+        self.assertEqual(result["circumferential_strain_route"], "standard_formula_10")
 
     def test_performance_route_uses_prowrap_eps_lt(self):
         result = calculate_type_a_class3_prowrap_check(

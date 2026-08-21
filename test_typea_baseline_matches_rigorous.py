@@ -13,11 +13,13 @@ from prowrap_calculations import (
     calculate_type_a_class3_prowrap_check,
     substrate_credit_bar_for_iso_check,
 )
+from strain_limits import LCL_STRAIN_LIMIT, STANDARD_STRAIN_LIMIT
 from test_current_calculation_baseline import default_inputs
 
 
 def run_both(case_overrides, installation_temp=20.0, component_type="Straight",
-             cyclic_derating_factor=1.0, axial_load_case=0):
+             cyclic_derating_factor=1.0, axial_load_case=0,
+             strain_limit_basis=LCL_STRAIN_LIMIT):
     inputs = default_inputs(**case_overrides)
     baseline = calculate_repair(
         **inputs,
@@ -25,6 +27,7 @@ def run_both(case_overrides, installation_temp=20.0, component_type="Straight",
         component_type=component_type,
         cyclic_derating_factor=cyclic_derating_factor,
         axial_load_case=axial_load_case,
+        strain_limit_basis=strain_limit_basis,
     )
     rigorous = calculate_type_a_class3_prowrap_check(
         od=inputs["od"],
@@ -38,6 +41,7 @@ def run_both(case_overrides, installation_temp=20.0, component_type="Straight",
         cyclic_derating_factor=cyclic_derating_factor,
         nominal_wall_mm=inputs["wall"],
         axial_load_case=axial_load_case,
+        strain_limit_basis=strain_limit_basis,
     )
     return baseline, rigorous
 
@@ -71,58 +75,59 @@ class TypeABaselineMatchesRigorousTest(unittest.TestCase):
     ]
 
     def test_baseline_type_a_matches_rigorous_module(self):
-        for overrides, t_inst, comp, fc, axial in self.CASES:
-            with self.subTest(overrides=overrides, install=t_inst,
-                              component=comp, cyclic=fc, axial=axial):
-                baseline, rigorous = run_both(
-                    overrides, t_inst, comp, fc, axial)
+        for strain_limit_basis in (STANDARD_STRAIN_LIMIT, LCL_STRAIN_LIMIT):
+            for overrides, t_inst, comp, fc, axial in self.CASES:
+                with self.subTest(
+                    basis=strain_limit_basis,
+                    overrides=overrides,
+                    install=t_inst,
+                    component=comp,
+                    cyclic=fc,
+                    axial=axial,
+                ):
+                    baseline, rigorous = run_both(
+                        overrides, t_inst, comp, fc, axial, strain_limit_basis)
 
-                self.assertIn("Type A", baseline["calc_method_thick"])
-                design = baseline["typea_design"]
-                self.assertIsNotNone(design)
-                self.assertAlmostEqual(
-                    design["substrate_pressure_mpa"],
-                    baseline["p_steel_capacity"],
-                    places=10,
-                )
-                self.assertAlmostEqual(
-                    rigorous["input_summary"][
-                        "substrate_allowable_pressure_bar"
-                    ],
-                    baseline["p_steel_capacity"] * 10.0,
-                    places=10,
-                )
+                    self.assertIn("Type A", baseline["calc_method_thick"])
+                    design = baseline["typea_design"]
+                    self.assertIsNotNone(design)
+                    self.assertEqual(baseline["strain_limit_basis"], strain_limit_basis)
+                    self.assertEqual(rigorous["strain_limit_basis"], strain_limit_basis)
+                    self.assertAlmostEqual(
+                        design["substrate_pressure_mpa"],
+                        baseline["p_steel_capacity"],
+                        places=10,
+                    )
+                    self.assertAlmostEqual(
+                        rigorous["input_summary"][
+                            "substrate_allowable_pressure_bar"
+                        ],
+                        baseline["p_steel_capacity"] * 10.0,
+                        places=10,
+                    )
 
-                # Strains (Formula 11 + 25 hoop; Formula 10 axial).
-                self.assertAlmostEqual(design["eps_c"], rigorous["eps_c"], places=10)
-                self.assertAlmostEqual(design["eps_a"], rigorous["eps_a"], places=10)
-                # Formula 4 end-thrust.
-                self.assertAlmostEqual(design["feq_n"], rigorous["feq_n"], places=6)
-                # Thicknesses: the rigorous module solves Formula 5 by
-                # bisection (stops at |residual| < 1e-9 strain, ~2e-6 mm in
-                # thickness); the baseline is closed form -> compare to 1e-4 mm.
-                self.assertAlmostEqual(
-                    design["tmin_c_mm"], rigorous["tmin_c_mm"], places=4)
-                self.assertAlmostEqual(
-                    design["tmin_a_mm"], rigorous["tmin_a_mm"], places=4)
-                self.assertAlmostEqual(
-                    design["fth_stress"], rigorous["fth_stress"], places=10)
-                self.assertAlmostEqual(
-                    design["tdesign_final_mm"], rigorous["tdesign_final_mm"],
-                    places=4)
-                # Layer count and installed thickness.
-                self.assertEqual(baseline["num_plies"], rigorous["layer_count"])
-                # Overlap: max(50, Formula 18, Formula 21).
-                self.assertAlmostEqual(
-                    design["lmin_transfer_mm"], rigorous["lmin_transfer_mm"],
-                    places=3)
-                self.assertAlmostEqual(
-                    baseline["overlap_length"], rigorous["lover_required_mm"],
-                    places=3)
-                # Taper (Formula 20, 5:1 on installed thickness).
-                self.assertAlmostEqual(
-                    baseline["taper_length"], rigorous["taper_length_mm"],
-                    places=6)
+                    self.assertAlmostEqual(design["eps_c"], rigorous["eps_c"], places=10)
+                    self.assertAlmostEqual(design["eps_a"], rigorous["eps_a"], places=10)
+                    self.assertAlmostEqual(design["feq_n"], rigorous["feq_n"], places=6)
+                    self.assertAlmostEqual(
+                        design["tmin_c_mm"], rigorous["tmin_c_mm"], places=4)
+                    self.assertAlmostEqual(
+                        design["tmin_a_mm"], rigorous["tmin_a_mm"], places=4)
+                    self.assertAlmostEqual(
+                        design["fth_stress"], rigorous["fth_stress"], places=10)
+                    self.assertAlmostEqual(
+                        design["tdesign_final_mm"], rigorous["tdesign_final_mm"],
+                        places=4)
+                    self.assertEqual(baseline["num_plies"], rigorous["layer_count"])
+                    self.assertAlmostEqual(
+                        design["lmin_transfer_mm"], rigorous["lmin_transfer_mm"],
+                        places=3)
+                    self.assertAlmostEqual(
+                        baseline["overlap_length"], rigorous["lover_required_mm"],
+                        places=3)
+                    self.assertAlmostEqual(
+                        baseline["taper_length"], rigorous["taper_length_mm"],
+                        places=6)
 
 
 class RoutingTest(unittest.TestCase):

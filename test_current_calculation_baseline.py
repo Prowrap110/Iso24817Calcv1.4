@@ -1,6 +1,7 @@
 import unittest
 
 from prowrap_calculations import calculate_repair
+from strain_limits import LCL_STRAIN_LIMIT, STANDARD_STRAIN_LIMIT
 
 
 def default_inputs(**overrides):
@@ -63,6 +64,25 @@ class CurrentCalculationBaselineTest(unittest.TestCase):
         self.assertEqual(result["governing_b31g_length_mm"], 100.0)
         self.assertEqual(result["governing_b31g_remaining_wall_mm"], 4.5)
         self.assertEqual(result["b31g_details"], result["b31g_assessments"][0]["assessment"])
+        self.assertEqual(result["strain_limit_basis"], LCL_STRAIN_LIMIT)
+        self.assertEqual(result["strain_limit_base"], 0.0055)
+        self.assertEqual(result["design_strain"], result["typea_design"]["eps_c"])
+        self.assertEqual(result["circumferential_strain_route"], "lcl_formula_11_performance")
+
+    def test_standard_selection_is_exposed_and_more_conservative_for_a_structural_case(self):
+        lcl = calculate_repair(
+            **default_inputs(pressure=120.0, rem_wall=3.0),
+            strain_limit_basis=LCL_STRAIN_LIMIT,
+        )
+        standard = calculate_repair(
+            **default_inputs(pressure=120.0, rem_wall=3.0),
+            strain_limit_basis=STANDARD_STRAIN_LIMIT,
+        )
+
+        self.assertEqual(standard["strain_limit_basis"], STANDARD_STRAIN_LIMIT)
+        self.assertEqual(standard["strain_limit_base"], 0.0025)
+        self.assertLess(standard["design_strain"], lcl["design_strain"])
+        self.assertGreater(standard["t_required"], lcl["t_required"])
 
     def test_force_3_layers_is_noop_now_that_iso_minimum_is_three(self):
         result = calculate_repair(**default_inputs(), force_3_layers=True)

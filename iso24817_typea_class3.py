@@ -8,6 +8,12 @@ PRW110 long-term strain evidence are approved.
 from dataclasses import dataclass
 import math
 
+from strain_limits import (
+    LCL_STRAIN_LIMIT,
+    calculate_circumferential_allowable_strain,
+    normalize_strain_limit_basis,
+)
+
 
 @dataclass(frozen=True)
 class TypeAClass3Inputs:
@@ -34,6 +40,7 @@ class TypeAClass3Inputs:
     use_performance_data: bool = False
     long_term_strain_lcl: float | None = None
     performance_data_source: str = "Design life"
+    strain_limit_basis: str = LCL_STRAIN_LIMIT
     equivalent_pressure_mpa: float | None = None
     equivalent_axial_load_n: float | None = None
     cyclic_derating_factor: float = 1.0
@@ -77,10 +84,7 @@ def _validate(inputs: TypeAClass3Inputs):
         raise ValueError("Live pressure cannot be negative.")
     if inputs.cyclic_derating_factor <= 0:
         raise ValueError("Cyclic derating factor must be greater than zero.")
-    if inputs.use_performance_data and not inputs.long_term_strain_lcl:
-        raise ValueError(
-            "Long-term strain LCL, eps_lt, is required when performance data is used."
-        )
+    normalize_strain_limit_basis(inputs.strain_limit_basis)
 
 
 def formula5_residual(
@@ -226,60 +230,39 @@ def calculate_type_a_class3(inputs: TypeAClass3Inputs) -> dict:
     if feq is None:
         feq = inputs.pressure_mpa * math.pi * inputs.outside_diameter_mm**2 / 4.0
 
-    fperf = 0.0
-    ft2 = 0.0
-    source = inputs.performance_data_source.strip().lower().replace("-", " ")
-
-    if inputs.use_performance_data:
-        if source in {"1000 h", "1000h", "1000 hour"}:
-            fperf = 0.612 * 10 ** (-0.0043 * inputs.design_life_years)
-        elif source in {"design life", "designlife"}:
-            fperf = 0.76 * 10 ** (-0.00273 * inputs.design_life_years)
-        else:
-            raise ValueError("Performance data source must be '1000 h' or 'Design life'.")
-
-        delta = (
-            inputs.max_repair_temperature_c
-            - inputs.design_temperature_c
-            - (inputs.qualification_test_temperature_c - inputs.ambient_test_temperature_c)
-        )
-        ft2 = 0.0000625 * delta**2 + 0.00125 * delta + 0.7
-        eps_c = fperf * ft2 * inputs.long_term_strain_lcl
-        circumferential_strain_basis = "performance_data"
-    else:
-        circumferential_strain_basis = "table_9_fallback"
+    strain_result = calculate_circumferential_allowable_strain(
+        strain_limit_basis=inputs.strain_limit_basis,
+        design_life_years=inputs.design_life_years,
+        design_temperature_c=inputs.design_temperature_c,
+        installation_temperature_c=inputs.installation_temperature_c,
+        max_repair_temperature_c=inputs.max_repair_temperature_c,
+        ambient_test_temperature_c=inputs.ambient_test_temperature_c,
+        qualification_test_temperature_c=inputs.qualification_test_temperature_c,
+        steel_cte_per_c=inputs.substrate_cte_per_c,
+        hoop_cte_per_c=inputs.hoop_cte_per_c,
+        cyclic_derating_factor=inputs.cyclic_derating_factor,
+    )
+    fperf = strain_result.performance_factor
+    ft2 = strain_result.temperature_factor
+    eps_c = strain_result.final_strain
+    circumferential_strain_basis = strain_result.strain_limit_basis
 
     if inputs.axial_modulus_mpa > 0.5 * inputs.hoop_modulus_mpa:
-        eps_c0 = 0.003061 * 10 ** (-0.0044 * inputs.design_life_years)
-        eps_a0 = eps_c0
+        eps_a0 = 0.003061 * 10 ** (-0.0044 * inputs.design_life_years)
     else:
-        eps_c0 = 0.003061 * 10 ** (-0.0044 * inputs.design_life_years)
         eps_a0 = 0.001
+    eps_c0 = strain_result.base_strain
 
     ft1_delta = inputs.max_repair_temperature_c - inputs.design_temperature_c
     ft1 = 0.0000625 * ft1_delta**2 + 0.00125 * ft1_delta + 0.7
 
-    # Formula (10) thermal-mismatch term. The absolute value is taken
-    # (conservative Annex K reading) so a favourable CTE mismatch can never
-    # increase the allowable strain.
     delta_t_install = inputs.design_temperature_c - inputs.installation_temperature_c
-    eps_c_noncyclic = ft1 * eps_c0 - abs(
-        delta_t_install * (inputs.substrate_cte_per_c - inputs.hoop_cte_per_c)
-    )
     eps_a_noncyclic = ft1 * eps_a0 - abs(
         delta_t_install * (inputs.substrate_cte_per_c - inputs.axial_cte_per_c)
     )
 
     eps_a = inputs.cyclic_derating_factor * eps_a_noncyclic
-    if inputs.use_performance_data:
-        # Formula 25: the cyclic factor applies to allowable strains on the
-        # performance route (Formula 11) as well.
-        eps_c = inputs.cyclic_derating_factor * eps_c
-    else:
-        eps_c = inputs.cyclic_derating_factor * eps_c_noncyclic
-
-    if eps_c <= 0:
-        raise ValueError("Calculated circumferential allowable strain is <= 0.")
+    eps_c_noncyclic = eps_c / inputs.cyclic_derating_factor
     if eps_a <= 0:
         raise ValueError("Calculated axial allowable strain is <= 0.")
 
@@ -369,11 +352,19 @@ def calculate_type_a_class3(inputs: TypeAClass3Inputs) -> dict:
     return {
         "design_path": "ISO 24817 Type A / Class 3 minimum-thickness route",
         "circumferential_strain_basis": circumferential_strain_basis,
+        "strain_limit_basis": strain_result.strain_limit_basis,
+        "strain_limit_base": strain_result.base_strain,
+        "design_strain": strain_result.final_strain,
+        "circumferential_strain_route": strain_result.route,
         "peq_mpa": peq,
         "feq_n": feq,
         "fperf": fperf,
         "ft2": ft2,
-        "long_term_strain_lcl": inputs.long_term_strain_lcl,
+        "long_term_strain_lcl": (
+            strain_result.base_strain
+            if strain_result.strain_limit_basis == LCL_STRAIN_LIMIT
+            else None
+        ),
         "ft1": ft1,
         "eps_c0": eps_c0,
         "eps_a0": eps_a0,
@@ -402,7 +393,7 @@ def calculate_type_a_class3(inputs: TypeAClass3Inputs) -> dict:
             "Overlap = max(50 mm, Formula 18 geometric 2*sqrt(D*t), Formula 21 load transfer).",
             "Formula 18 requires nominal_wall_mm; when absent only the 50 mm floor and Formula 21 apply.",
             "Total axial length per Formula 20: defect + 2*overlap + 2*taper (taper >= 5:1).",
-            "Performance route uses supplied PRW110 eps_lt evidence when enabled.",
+            "Circumferential strain uses the selected Standard or LCL route.",
             "Pressure-only Feq default is used when equivalent axial load is not supplied.",
         ],
     }
