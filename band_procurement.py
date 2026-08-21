@@ -3,7 +3,7 @@
 from dataclasses import dataclass
 import math
 
-from prowrap_materials import APPROVED_CLOTH_WIDTHS_MM
+from prowrap_materials import APPROVED_CLOTH_WIDTHS_MM, STITCHING_OVERLAP_MM
 
 
 @dataclass(frozen=True)
@@ -49,8 +49,8 @@ def optimize_band_procurement(
 
     available_widths = _available_widths(cloth_widths_mm)
     overlap = _finite_number(overlap_mm, "overlap")
-    if overlap >= min(available_widths):
-        raise ValueError("overlap must be smaller than every selected cloth width.")
+    if overlap != STITCHING_OVERLAP_MM:
+        raise ValueError(f"overlap must equal {STITCHING_OVERLAP_MM} mm.")
 
     smallest_width = min(available_widths)
     all_smallest_count = max(
