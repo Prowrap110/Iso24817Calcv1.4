@@ -43,6 +43,23 @@ def test_standard_route_uses_the_approved_formula_10_inputs():
     assert result.route == "standard_formula_10"
 
 
+def test_standard_route_uses_ft1_when_qualification_and_ambient_differ():
+    result = calculate(
+        STANDARD_STRAIN_LIMIT,
+        ambient_test_temperature_c=20.0,
+        qualification_test_temperature_c=50.0,
+    )
+    fc = 0.85
+    ft1 = 0.0000625 * (90.0 - 40.0) ** 2 + 0.00125 * (90.0 - 40.0) + 0.7
+    expected = fc * (
+        ft1 * 0.0025
+        - abs((40.0 - 20.0) * (12e-6 - 10.34e-6))
+    )
+
+    assert result.temperature_factor == pytest.approx(ft1)
+    assert result.final_strain == pytest.approx(expected)
+
+
 def test_lcl_route_uses_the_approved_formula_11_performance_inputs():
     result = calculate(LCL_STRAIN_LIMIT)
     fc = 0.85

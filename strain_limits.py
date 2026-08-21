@@ -33,14 +33,7 @@ def normalize_strain_limit_basis(value) -> str:
     return normalized
 
 
-def _temperature_factor(max_repair_temperature_c, design_temperature_c,
-                        ambient_test_temperature_c,
-                        qualification_test_temperature_c) -> float:
-    delta = (
-        max_repair_temperature_c
-        - design_temperature_c
-        - (qualification_test_temperature_c - ambient_test_temperature_c)
-    )
+def _temperature_factor(delta) -> float:
     return 0.0000625 * delta**2 + 0.00125 * delta + 0.7
 
 
@@ -59,14 +52,11 @@ def calculate_circumferential_allowable_strain(
 ) -> CircumferentialStrainResult:
     """Calculate the approved Standard or PRW110 LCL hoop strain limit."""
     basis = normalize_strain_limit_basis(strain_limit_basis)
-    temperature_factor = _temperature_factor(
-        max_repair_temperature_c,
-        design_temperature_c,
-        ambient_test_temperature_c,
-        qualification_test_temperature_c,
-    )
-
     if basis == STANDARD_STRAIN_LIMIT:
+        # Formula (10) uses fT1, based only on Tm - Td.
+        temperature_factor = _temperature_factor(
+            max_repair_temperature_c - design_temperature_c
+        )
         base_strain = 0.0025
         thermal_mismatch = abs(
             (design_temperature_c - installation_temperature_c)
@@ -78,6 +68,12 @@ def calculate_circumferential_allowable_strain(
         )
         route = "standard_formula_10"
     else:
+        # Formula (11) uses fT2, including the qualification/ambient offset.
+        temperature_factor = _temperature_factor(
+            max_repair_temperature_c
+            - design_temperature_c
+            - (qualification_test_temperature_c - ambient_test_temperature_c)
+        )
         base_strain = 0.0055
         thermal_mismatch = 0.0
         performance_factor = 0.76 * 10 ** (-0.00273 * design_life_years)
