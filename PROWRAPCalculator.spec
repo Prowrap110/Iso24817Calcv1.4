@@ -68,6 +68,7 @@ application = BUNDLE(
     bundle_identifier=METADATA["bundle_id"],
     version=METADATA["version"],
     info_plist={
+        "CFBundleDisplayName": METADATA["executable_name"],
         "LSMinimumSystemVersion": MINIMUM_MACOS_VERSION,
         "NSHighResolutionCapable": True,
     },

@@ -4,10 +4,10 @@ set -euo pipefail
 
 REPOSITORY_DIRECTORY="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 VIRTUAL_ENVIRONMENT="$REPOSITORY_DIRECTORY/.venv-desktop"
-PROWRAP_EXECUTABLE_NAME="PROWRAP ISO 24817 Calculator v1.2"
+PROWRAP_EXECUTABLE_NAME="PROWRAP ISO 24817 Calculator v1.3"
 PROWRAP_BUNDLE_NAME="$PROWRAP_EXECUTABLE_NAME.app"
-PROWRAP_BUNDLE_IDENTIFIER="com.protapglobal.prowrap.iso24817calculator.v12"
-PROWRAP_ARCHIVE_NAME="PROWRAP-Calculator-v1.2-macOS-arm64-M4-M5.zip"
+PROWRAP_BUNDLE_IDENTIFIER="com.protapglobal.prowrap.iso24817calculator.v13"
+PROWRAP_ARCHIVE_NAME="PROWRAP-Calculator-v1.3-macOS-arm64-M4-M5.zip"
 APPLICATION_BUNDLE="$REPOSITORY_DIRECTORY/dist/$PROWRAP_BUNDLE_NAME"
 MAIN_EXECUTABLE="$APPLICATION_BUNDLE/Contents/MacOS/$PROWRAP_EXECUTABLE_NAME"
 INFO_PLIST="$APPLICATION_BUNDLE/Contents/Info.plist"
@@ -132,7 +132,7 @@ run_gate \
     "bundle metadata inspection" \
     inspect_bundle_metadata \
     CFBundleIdentifier "$PROWRAP_BUNDLE_IDENTIFIER" \
-    CFBundleShortVersionString 1.2 \
+    CFBundleShortVersionString 1.3 \
     LSMinimumSystemVersion "$BUILD_HOST_MACOS_VERSION"
 run_gate "signature verification" codesign --verify --deep --strict "$APPLICATION_BUNDLE"
 

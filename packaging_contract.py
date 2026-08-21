@@ -13,6 +13,7 @@ from app_identity import APP_NAME, APP_VERSION
 CALCULATOR_MODULES = (
     "PWR110Calculator.py",
     "app_identity.py",
+    "band_procurement.py",
     "b31g.py",
     "calculator_form.py",
     "corrosion_defects.py",
@@ -31,11 +32,11 @@ class PackagingInputs(NamedTuple):
 def packaging_metadata() -> dict[str, str]:
     return {
         "target_arch": "arm64",
-        "bundle_id": "com.protapglobal.prowrap.iso24817calculator.v12",
+        "bundle_id": "com.protapglobal.prowrap.iso24817calculator.v13",
         "entry_point": "desktop_launcher.py",
         "executable_name": APP_NAME,
         "bundle_name": f"{APP_NAME}.app",
-        "archive_name": "PROWRAP-Calculator-v1.2-macOS-arm64-M4-M5.zip",
+        "archive_name": "PROWRAP-Calculator-v1.3-macOS-arm64-M4-M5.zip",
         "version": APP_VERSION,
     }
 

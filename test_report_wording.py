@@ -122,7 +122,7 @@ class ReportWordingTest(unittest.TestCase):
 
         text = self._pdf_text(create_pdf(report))
 
-        self.assertIn("PROWRAP COMPOSITE REPAIR REPORT - v1.2", text)
+        self.assertIn("PROWRAP COMPOSITE REPAIR REPORT - v1.3", text)
         self.assertIn("Defect Length Basis: Independent defects", text)
         self.assertIn("Overall Repair-Zone Span: 1000.0 mm", text)
         self.assertIn("B31G Assessment Length: 10.0 mm", text)
@@ -249,7 +249,7 @@ class ReportWordingTest(unittest.TestCase):
             ),
         }
         common = (
-            "PROWRAP COMPOSITE REPAIR REPORT - v1.2",
+            "PROWRAP COMPOSITE REPAIR REPORT - v1.3",
             "Overall Repair-Zone Span: 1000.0 mm",
             "3t Interaction Threshold: 36.0 mm",
             "B31G Candidates Assessed:",

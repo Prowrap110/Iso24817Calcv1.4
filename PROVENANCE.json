@@ -1,0 +1,29 @@
+{
+  "product": {
+    "name": "PROWRAP ISO 24817 Calculator v1.3",
+    "version": "1.3",
+    "repository": "Prowrap110/Iso24817Calcv1.3",
+    "bundle_identifier": "com.protapglobal.prowrap.iso24817calculator.v13",
+    "archive_name": "PROWRAP-Calculator-v1.3-macOS-arm64-M4-M5.zip"
+  },
+  "imported_v12": {
+    "commit": "91b68d64508a4786934f0e17f2aea0dbebf745a7",
+    "tree": "f8d0b2303097fc7f738f295c71790370c6131de8",
+    "archive_name": "PROWRAP-Calculator-v1.2-macOS-arm64-M4-M5.zip"
+  },
+  "runtime": {
+    "python_implementation": "CPython",
+    "python_version": "3.14.3",
+    "architecture": "arm64",
+    "requirements_sha256": "10a0a1a54f02444ed10afa4ef969940f1f5422e4d80b373efc05d234c1871ee8"
+  },
+  "engine_module_sha256": {
+    "band_procurement.py": "ba5d67eba3be6502e4d3ddbf475ca0189b7a9660ba9508429d77498de240e0bc",
+    "b31g.py": "de33c83c98534b7b805cccbd0d13f4938932f2f4048d174db32b42a49d4e6635",
+    "calculator_form.py": "aca03e67b91c0d8bb9cf176bf9918c5227bdd711f938d15fc6cd65bce90ba780",
+    "corrosion_defects.py": "3b943b78c0ece77d826d69c79e83d12ca29e05af8afc1c53279738b5cacbd458",
+    "iso24817_typea_class3.py": "b9acbac042bc4fb2dc538b8165ec0b4b488a5a0b70649627a3370368f78649ff",
+    "prowrap_calculations.py": "ea191add86766cd79fc5ec9f6e9deed8b950b1d66bd3318d89406c2846be9eca",
+    "prowrap_materials.py": "213064ff8d1a7d06646b3172b90caa79704f11742cef0ad58dbfc3ecd101320e"
+  }
+}

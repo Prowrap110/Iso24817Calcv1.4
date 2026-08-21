@@ -2,7 +2,7 @@ import unittest
 
 import pandas as pd
 
-from app_identity import APP_NAME, APP_VERSION, SOURCE_BASELINE_REVISION
+from app_identity import APP_NAME, APP_VERSION
 from corrosion_defects import (
     ACTUAL_DEFECT_LENGTH,
     DEFECT_LENGTH_BASES,
@@ -15,13 +15,9 @@ from corrosion_defects import (
 
 
 class CorrosionDefectContractTest(unittest.TestCase):
-    def test_v12_identity_and_exact_choices(self):
-        self.assertEqual(APP_NAME, "PROWRAP ISO 24817 Calculator v1.2")
-        self.assertEqual(APP_VERSION, "1.2")
-        self.assertEqual(
-            SOURCE_BASELINE_REVISION,
-            "7ca0e66ab4f8334fe07fda54b64599f54b1a1256",
-        )
+    def test_v13_identity_and_exact_choices(self):
+        self.assertEqual(APP_NAME, "PROWRAP ISO 24817 Calculator v1.3")
+        self.assertEqual(APP_VERSION, "1.3")
         self.assertEqual(
             DEFECT_LENGTH_BASES,
             (
