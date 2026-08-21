@@ -37,7 +37,7 @@ The script refuses a non-arm64 host, a non-arm64 selected build Python, or a uni
 After the build environment has been created, rerun the same suite with:
 
 ```bash
-.venv-desktop/bin/python -m unittest discover -v
+.venv-desktop/bin/python -m pytest -q
 ```
 
 `./scripts/build_macos.sh` also runs this suite before it removes any previous build output and packages a new release.

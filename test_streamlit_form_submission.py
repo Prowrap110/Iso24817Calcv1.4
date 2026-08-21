@@ -92,10 +92,11 @@ class StreamlitFormSubmissionTest(unittest.TestCase):
                 self.assertEqual(selector.options, ["Select…", "300", "500"])
                 self.assertEqual(selector.value, "Select…")
 
-    def test_duplicate_and_reversed_cloth_widths_calculate_with_auditable_plan(self):
-        for widths, expected_bands in (
-            ((300, 300), (0, 3, 3)),
-            ((500, 300), (1, 1, 2)),
+    def test_all_width_plans_render_exact_effective_coverage(self):
+        for widths, expected_plan in (
+            ((300, 300), (0, 3, 3, 800, 900)),
+            ((500, 300), (1, 1, 2, 750, 800)),
+            ((500, 500), (2, 0, 2, 950, 1000)),
         ):
             with self.subTest(widths=widths):
                 app = AppTest.from_file("PWR110Calculator.py").run()
@@ -108,18 +109,23 @@ class StreamlitFormSubmissionTest(unittest.TestCase):
                 rendered = self._rendered_markdown(app)
                 self.assertTrue(app.session_state["calc_active"])
                 self.assertIn(
-                    f"**500 mm Bands:** {expected_bands[0]}", rendered,
+                    f"**500 mm Bands:** {expected_plan[0]}", rendered,
                 )
                 self.assertIn(
-                    f"**300 mm Bands:** {expected_bands[1]}", rendered,
+                    f"**300 mm Bands:** {expected_plan[1]}", rendered,
                 )
                 self.assertIn(
-                    f"**Total Axial Bands:** {expected_bands[2]}", rendered,
+                    f"**Total Axial Bands:** {expected_plan[2]}", rendered,
                 )
                 self.assertIn("**Req. Length (ISO):** 637 mm", rendered)
+                for expected in (
+                    f"**Effective Covered Length:** {expected_plan[3]} mm",
+                    f"**Procurement Axial Length:** {expected_plan[4]} mm",
+                ):
+                    with self.subTest(widths=widths, expected=expected):
+                        self.assertIn(expected, rendered)
                 if widths == (500, 300):
                     for expected in (
-                        "**Procurement Axial Length:** 800 mm",
                         "**Fabric Needed:** 3.45 m²",
                         "**Epoxy Total:** 4.1 kg",
                         "4. **Wrapping:** Install **1 x 500 mm** and "
@@ -144,6 +150,7 @@ class StreamlitFormSubmissionTest(unittest.TestCase):
             "**500 mm Bands:** 1",
             "**300 mm Bands:** 1",
             "**Total Axial Bands:** 2",
+            "**Effective Covered Length:** 750 mm",
             "**Procurement Axial Length:** 800 mm",
             "**Fabric Needed:** 10.34 m²",
             "**Epoxy Total:** 12.4 kg",

@@ -19,6 +19,8 @@ REPOSITORY_DIRECTORY = Path(__file__).resolve().parent
 CONTRACT_PATH = REPOSITORY_DIRECTORY / "packaging_contract.py"
 SPEC_PATH = REPOSITORY_DIRECTORY / "PROWRAPCalculator.spec"
 BUILD_SCRIPT_PATH = REPOSITORY_DIRECTORY / "scripts" / "build_macos.sh"
+DESKTOP_BUILD_PATH = REPOSITORY_DIRECTORY / "DESKTOP_BUILD.md"
+DESKTOP_REQUIREMENTS_PATH = REPOSITORY_DIRECTORY / "requirements-desktop.txt"
 
 CALCULATOR_MODULES = (
     "PWR110Calculator.py",
@@ -269,6 +271,20 @@ class PackagingContractTest(unittest.TestCase):
                 "[gate] ZIP creation",
             ],
         )
+
+    def test_desktop_build_gate_uses_project_pytest_suite(self):
+        build_script = BUILD_SCRIPT_PATH.read_text(encoding="utf-8")
+        build_guide = DESKTOP_BUILD_PATH.read_text(encoding="utf-8")
+        desktop_requirements = DESKTOP_REQUIREMENTS_PATH.read_text(encoding="utf-8")
+
+        self.assertIn(
+            'run_gate "full test suite" "$PYTHON" -m pytest -q',
+            build_script,
+        )
+        self.assertNotIn("unittest discover", build_script)
+        self.assertIn(".venv-desktop/bin/python -m pytest -q", build_guide)
+        self.assertNotIn("unittest discover", build_guide)
+        self.assertIn("pytest", desktop_requirements)
 
     def test_build_script_dry_run_rejects_universal2_main_executable(self):
         environment = os.environ.copy()

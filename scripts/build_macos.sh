@@ -117,7 +117,7 @@ python3 -c \
 "$PYTHON" -m pip install --upgrade pip setuptools wheel
 "$PYTHON" -m pip install -r "$REPOSITORY_DIRECTORY/requirements-desktop.txt"
 
-run_gate "full test suite" "$PYTHON" -m unittest discover -v
+run_gate "full test suite" "$PYTHON" -m pytest -q
 
 rm -rf \
     "$REPOSITORY_DIRECTORY/build" \

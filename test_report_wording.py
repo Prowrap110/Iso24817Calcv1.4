@@ -10,7 +10,12 @@ from corrosion_defects import (
     INDEPENDENT_DEFECTS,
     IndividualCorrosionDefect,
 )
-from prowrap_calculations import calculate_repair
+from prowrap_calculations import (
+    apply_type_a_class3_result_to_repair,
+    calculate_repair,
+    calculate_type_a_class3_prowrap_check,
+    substrate_credit_bar_for_iso_check,
+)
 from test_current_calculation_baseline import default_inputs
 
 
@@ -60,6 +65,7 @@ class ReportWordingTest(unittest.TestCase):
         self.assertIn("500 mm Bands: 1", text)
         self.assertIn("300 mm Bands: 1", text)
         self.assertIn("Total Axial Bands: 2", text)
+        self.assertIn("Effective Covered Length: 750 mm", text)
         self.assertIn("Procurement Axial Length: 800 mm", text)
         self.assertIn("Fabric Needed: 3.45 sqm", text)
         self.assertIn("Epoxy Required: 4.1 kg", text)
@@ -70,6 +76,53 @@ class ReportWordingTest(unittest.TestCase):
             " ".join(text.split()),
         )
         self.assertNotIn("band(s) of", text)
+
+    def test_pdf_reports_effective_coverage_for_each_available_width_plan(self):
+        cases = (
+            ((500, 300), 1, 1, 750, 800),
+            ((300, 300), 0, 3, 800, 900),
+            ((500, 500), 2, 0, 950, 1000),
+        )
+
+        for widths, count_500, count_300, covered, procurement in cases:
+            with self.subTest(widths=widths):
+                report = calculate_repair(
+                    **default_inputs(length=348.246, cloth_widths_mm=widths),
+                )
+                text = self._pdf_text(create_pdf(report))
+
+                self.assertIn(f"500 mm Bands: {count_500}", text)
+                self.assertIn(f"300 mm Bands: {count_300}", text)
+                self.assertIn(f"Effective Covered Length: {covered} mm", text)
+                self.assertIn(f"Procurement Axial Length: {procurement} mm", text)
+
+    def test_pdf_reports_effective_coverage_when_typea_class3_controls(self):
+        repair = calculate_repair(
+            **default_inputs(
+                defect_type="Dent w/crack",
+                length=140.0,
+                rem_wall=9.53,
+                cloth_widths_mm=(500.0, 300.0),
+            ),
+        )
+        class3 = calculate_type_a_class3_prowrap_check(
+            od=repair["od"],
+            pressure_bar=repair["pressure"],
+            temp=repair["temp"],
+            rem_wall=repair["rem_wall_eol"],
+            design_life=repair["design_life"],
+            substrate_allowable_pressure_bar=substrate_credit_bar_for_iso_check(repair),
+            nominal_wall_mm=repair["wall"],
+        )
+        report = apply_type_a_class3_result_to_repair(
+            repair, class3, cloth_widths_mm=(500.0, 300.0),
+        )
+
+        self.assertTrue(report["iso_typea_class3_controls"])
+        text = self._pdf_text(create_pdf(report))
+
+        self.assertIn("Effective Covered Length: 750 mm", text)
+        self.assertIn("Procurement Axial Length: 800 mm", text)
 
     def test_dent_with_crack_pdf_reports_full_pressure_laminate_basis(self):
         text = self._dent_report_text("Dent w/crack")

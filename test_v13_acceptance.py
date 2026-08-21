@@ -15,7 +15,7 @@ README_PATH = REPOSITORY_DIRECTORY / "README.md"
 V12_IMPORTED_COMMIT = "91b68d64508a4786934f0e17f2aea0dbebf745a7"
 V12_IMPORTED_TREE = "f8d0b2303097fc7f738f295c71790370c6131de8"
 V12_ARCHIVE_NAME = "PROWRAP-Calculator-v1.2-macOS-arm64-M4-M5.zip"
-ENGINE_MODULES = (
+ENGINE_MODULE_ALLOWLIST = (
     "band_procurement.py",
     "b31g.py",
     "calculator_form.py",
@@ -23,6 +23,7 @@ ENGINE_MODULES = (
     "iso24817_typea_class3.py",
     "prowrap_calculations.py",
     "prowrap_materials.py",
+    "prowrap_mechanisms.py",
 )
 
 
@@ -92,7 +93,11 @@ class V13AcceptanceTest(unittest.TestCase):
                 (REPOSITORY_DIRECTORY / runtime["requirements_file"]).read_bytes()
             ).hexdigest(),
         )
-        for module_name in ENGINE_MODULES:
+        self.assertEqual(
+            set(provenance["engine_module_sha256"]),
+            set(ENGINE_MODULE_ALLOWLIST),
+        )
+        for module_name in ENGINE_MODULE_ALLOWLIST:
             with self.subTest(module_name=module_name):
                 module_hash = hashlib.sha256(
                     (REPOSITORY_DIRECTORY / module_name).read_bytes()

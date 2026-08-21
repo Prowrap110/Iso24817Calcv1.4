@@ -249,6 +249,7 @@ def create_pdf(report_data):
         "500 mm Bands": str(report_data['num_bands_500']),
         "300 mm Bands": str(report_data['num_bands_300']),
         "Total Axial Bands": str(report_data['num_bands']),
+        "Effective Covered Length": f"{report_data['covered_length_mm']:g} mm",
         "Procurement Axial Length": f"{report_data['proc_length']:g} mm",
         "Design Factor": f"{report_data['design_factor']}"
     })
@@ -403,6 +404,7 @@ def run_calculation(
     num_plies = report_data["num_plies"]
     final_thickness = report_data["final_thickness"]
     total_repair_length_calc = report_data["iso_length"]
+    effective_covered_length = report_data["covered_length_mm"]
     procurement_axial_length = report_data["proc_length"]
     optimized_sqm = report_data["optimized_sqm"]
     epoxy_kg = report_data["epoxy_kg"]
@@ -448,6 +450,7 @@ def run_calculation(
         num_plies = report_data["num_plies"]
         final_thickness = report_data["final_thickness"]
         total_repair_length_calc = report_data["iso_length"]
+        effective_covered_length = report_data["covered_length_mm"]
         procurement_axial_length = report_data["proc_length"]
         optimized_sqm = report_data["optimized_sqm"]
         epoxy_kg = report_data["epoxy_kg"]
@@ -461,17 +464,18 @@ def run_calculation(
     for warning_text in report_data.get("compliance_warnings", []):
         st.error(f"⚠️ **ISO 24817 COMPLIANCE:** {warning_text}")
 
-    m1, m2, m3, m4, m5, m6 = st.columns(6)
+    m1, m2, m3, m4, m5, m6, m7 = st.columns(7)
     m1.metric("Required Plies", f"{num_plies}", f"{final_thickness:.2f} mm")
     m2.metric("Req. Repair Length", f"{total_repair_length_calc:.0f} mm")
-    m3.metric("Procurement Axial Length", f"{procurement_axial_length:g} mm")
-    m4.metric(
+    m3.metric("Effective Covered Length", f"{effective_covered_length:g} mm")
+    m4.metric("Procurement Axial Length", f"{procurement_axial_length:g} mm")
+    m5.metric(
         "Band Plan",
         f"500: {num_bands_500} | 300: {num_bands_300}",
         f"{num_bands} total bands",
     )
-    m5.metric("Optimized Fabric", f"{optimized_sqm:.2f} m²")
-    m6.metric("Epoxy Needed", f"{epoxy_kg:.1f} kg")
+    m6.metric("Optimized Fabric", f"{optimized_sqm:.2f} m²")
+    m7.metric("Epoxy Needed", f"{epoxy_kg:.1f} kg")
 
     st.markdown("---")
     if num_plies == 2 and not is_upgraded:
@@ -682,6 +686,7 @@ def run_calculation(
             - **500 mm Bands:** {num_bands_500}
             - **300 mm Bands:** {num_bands_300}
             - **Total Axial Bands:** {num_bands}
+            - **Effective Covered Length:** {effective_covered_length:g} mm
             - **Procurement Axial Length:** {procurement_axial_length:g} mm
             - **Fabric Needed:** {optimized_sqm:.2f} m²
             - **Epoxy Total:** {epoxy_kg:.1f} kg
