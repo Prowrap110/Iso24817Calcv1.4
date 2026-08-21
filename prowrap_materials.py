@@ -8,6 +8,8 @@ before engineering approval.
 """
 
 _GLASS_TRANSITION_TEMP_C = 110.0
+APPROVED_CLOTH_WIDTHS_MM = (300.0, 500.0)
+STITCHING_OVERLAP_MM = 50.0
 
 PROWRAP = {
     "ply_thickness": 0.83,             # mm, ISO 527-4
@@ -42,8 +44,8 @@ PROWRAP = {
     "impact_peak_energy": 41.982,      # J, ASTM D7136
     "short_term_survival": "PASS",     # ISO 24817
     "max_temp": _GLASS_TRANSITION_TEMP_C - 20.0,  # degC, Tg minus 20 design limit
-    "cloth_width_mm": 300,
-    "stitching_overlap_mm": 50,
+    "cloth_width_mm": APPROVED_CLOTH_WIDTHS_MM[0],
+    "stitching_overlap_mm": STITCHING_OVERLAP_MM,
 }
 
 PROWRAP_SOURCES = {
