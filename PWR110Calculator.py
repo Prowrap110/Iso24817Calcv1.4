@@ -17,6 +17,7 @@ from prowrap_calculations import (
 )
 from prowrap_materials import PROWRAP
 from prowrap_mechanisms import MECHANISM_CHOICES
+from strain_limits import LCL_STRAIN_LIMIT, STRAIN_LIMIT_CHOICES
 from calculator_form import (
     NEUTRAL_CHOICE,
     calculation_corrosion_rate,
@@ -251,17 +252,35 @@ def create_pdf(report_data):
         "Total Axial Bands": str(report_data['num_bands']),
         "Effective Covered Length": f"{report_data['covered_length_mm']:g} mm",
         "Procurement Axial Length": f"{report_data['proc_length']:g} mm",
-        "Design Factor": f"{report_data['design_factor']}"
+        "Design Factor": f"{report_data['design_factor']}",
+        "Strain Limit Basis": report_data["strain_limit_basis"],
+        "Selected Base Strain": (
+            f"{report_data['strain_limit_base'] * 100:.3f}%"
+        ),
+        "Final Design Strain (epsilon_c)": (
+            f"{report_data['design_strain'] * 100:.3f}%"
+        ),
+        "Circumferential Strain Route": (
+            report_data["circumferential_strain_route"]
+        ),
     })
     
     # Add the basis note to the PDF directly under the design section.
     pdf.set_font("Arial", 'I', 9)
     pdf.set_text_color(100, 100, 100) # Dark grey for note
-    standards_note = (
-        "* Thickness per ISO 24817 Formula 11 performance route "
-        f"(eps_lt = 0.55%, Class 3, {report_data['design_life']} yr design life); "
-        "axial extent per Formulae 18/20/21; minimum thickness per 7.5.14. "
-    )
+    if report_data["strain_limit_basis"] == LCL_STRAIN_LIMIT:
+        standards_note = (
+            "* Thickness per ISO 24817 Formula 11 performance route "
+            f"(epsilon_lt = 0.55%, Class 3, {report_data['design_life']} "
+            "yr design life); axial extent per Formulae 18/20/21; minimum "
+            "thickness per 7.5.14. "
+        )
+    else:
+        standards_note = (
+            "* Thickness per ISO 24817 Formula 10 standard route "
+            "(base epsilon_c0 = 0.25%); axial extent per Formulae 18/20/21; "
+            "minimum thickness per 7.5.14. "
+        )
     if report_data.get("b31g_details"):
         b31g = report_data["b31g_details"]
         method_label = b31g["method"].title()
@@ -363,6 +382,7 @@ def run_calculation(
     cloth_width_2_mm=300,
     defect_length_basis=ACTUAL_DEFECT_LENGTH,
     individual_defects=(),
+    strain_limit_basis=NEUTRAL_CHOICE,
 ):
     try:
         cloth_widths_mm = (cloth_width_1_mm, cloth_width_2_mm)
@@ -390,6 +410,7 @@ def run_calculation(
             cloth_widths_mm=cloth_widths_mm,
             defect_length_basis=defect_length_basis,
             individual_defects=individual_defects,
+            strain_limit_basis=strain_limit_basis,
         )
     except ValueError as exc:
         st.session_state.calc_active = False
@@ -432,6 +453,7 @@ def run_calculation(
                     component_type=component_type,
                     cyclic_derating_factor=cyclic_derating_factor,
                     axial_load_case=axial_load_case,
+                    strain_limit_basis=strain_limit_basis,
                 )
             except ValueError as exc:
                 typea_class3_note = str(exc)
@@ -583,7 +605,22 @@ def run_calculation(
                 "**Continuous Repair Length:** "
                 f"{total_repair_length_calc:.1f} mm"
             )
-            st.write(f"**Design Strain Limit:** {design_strain*100:.3f}% (ISO 24817 Formula 11: fperf x fT2 x eps_lt)")
+            st.write(
+                "**Strain Limit Basis:** "
+                f"{report_data['strain_limit_basis']}"
+            )
+            st.write(
+                "**Selected Base Strain:** "
+                f"{report_data['strain_limit_base'] * 100:.3f}%"
+            )
+            st.write(
+                "**Final Design Strain (epsilon_c):** "
+                f"{design_strain * 100:.3f}%"
+            )
+            st.write(
+                "**Circumferential Strain Route:** "
+                f"{report_data['circumferential_strain_route']}"
+            )
             type_b_details = report_data.get("type_b_details")
             if type_b_details:
                 st.markdown("### Type B Check (ISO Formula 12)")
@@ -610,14 +647,17 @@ def run_calculation(
                         f"(end-thrust F_eq = {typea_class3_result['feq_n']/1000:.0f} kN; "
                         "severed-pipe / above-ground case)"
                     )
-                if typea_class3_result["circumferential_strain_basis"] == "performance_data":
+                if typea_class3_result["strain_limit_basis"] == LCL_STRAIN_LIMIT:
                     st.write(
                         "**Basis:** PRW110 performance data "
                         "(ISO 24817 Formula 11, eps_lt = "
                         f"{PROWRAP['long_term_strain_lcl']*100:.2f}%)."
                     )
                 else:
-                    st.write("**Basis:** Table 9 fallback; PRW110 performance eps_lt not supplied.")
+                    st.write(
+                        "**Basis:** Standard Formula 10 route "
+                        "(epsilon_c0 = 0.25%)."
+                    )
                 st.write(
                     f"**Substrate Credit:** {substrate_allowable_pressure:.1f} bar "
                     f"({substrate_allowable_pressure * 0.1:.2f} MPa effective pipe capacity)"
@@ -866,6 +906,12 @@ def main():
         st.sidebar.header("5. Safety & Design Settings")
         design_life = st.sidebar.number_input("Design Life [years]", min_value=1, key="design_life", on_change=reset_calc)
         df = st.sidebar.number_input("Design Factor (f)", min_value=0.1, max_value=1.0, key="df", on_change=reset_calc)
+        strain_limit_basis = st.sidebar.selectbox(
+            "Strain Limit",
+            [NEUTRAL_CHOICE, *STRAIN_LIMIT_CHOICES],
+            key="strain_limit_basis",
+            on_change=reset_calc,
+        )
 
         st.sidebar.header("6. Installation & Load Conditions")
         st.sidebar.caption("These inputs feed the baseline design (thermal mismatch, component factor f_th, cyclic derating, Formula 4 axial loads) and the ISO Type A / Class 3 check.")
@@ -944,6 +990,7 @@ def main():
                 cloth_width_2_mm,
                 defect_length_basis=defect_length_basis,
                 individual_defects=individual_defects,
+                strain_limit_basis=strain_limit_basis,
             )
             
     except Exception as e:

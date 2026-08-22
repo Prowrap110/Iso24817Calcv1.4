@@ -32,7 +32,7 @@ PROWRAP = {
     "lap_shear": 14.7,                 # MPa, ASTM D3165
     "long_term_lap_shear": 9.62,       # MPa, ASTM D3165
     "long_term_strain_lcl": 0.0055,    # mm/mm (0.55 %), eps_lt, 95% LCL long-term strain,
-                                       # ISO 24817 Annex E performance data (Formula 11 route)
+                                       # ISO 24817 Annex E LCL selection (Formula 11 route)
     "long_term_strain_20y": 0.0055,    # mm/mm, 0.55% long-term strain at 20 years
                                        # (same value as long_term_strain_lcl, legacy key)
     "gamma_lcl": 250.0,                # J/m^2, energy release rate 95% LCL,

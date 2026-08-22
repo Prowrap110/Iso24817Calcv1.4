@@ -1,9 +1,14 @@
 {
   "product": {
-    "name": "PROWRAP ISO 24817 Calculator v1.3",
-    "version": "1.3",
-    "repository": "Prowrap110/Iso24817Calcv1.3",
-    "bundle_identifier": "com.protapglobal.prowrap.iso24817calculator.v13",
+    "name": "PROWRAP ISO 24817 Calculator v1.4",
+    "version": "1.4",
+    "repository": "Prowrap110/Iso24817Calcv1.4",
+    "bundle_identifier": "com.protapglobal.prowrap.iso24817calculator.v14",
+    "archive_name": "PROWRAP-Calculator-v1.4-macOS-arm64-M4-M5.zip"
+  },
+  "imported_v13": {
+    "commit": "da83373d648694f50b8a974ff6071a73ceec2089",
+    "tree": "e619db9be11082ea6aa34a59b9d7ed62e7a0e813",
     "archive_name": "PROWRAP-Calculator-v1.3-macOS-arm64-M4-M5.zip"
   },
   "imported_v12": {
@@ -21,11 +26,12 @@
   "engine_module_sha256": {
     "band_procurement.py": "ba5d67eba3be6502e4d3ddbf475ca0189b7a9660ba9508429d77498de240e0bc",
     "b31g.py": "de33c83c98534b7b805cccbd0d13f4938932f2f4048d174db32b42a49d4e6635",
-    "calculator_form.py": "aca03e67b91c0d8bb9cf176bf9918c5227bdd711f938d15fc6cd65bce90ba780",
+    "calculator_form.py": "4da9caf8b91249e6805749691199394f52b263595fe51c4f17fd6c3cefb8a8f2",
     "corrosion_defects.py": "3b943b78c0ece77d826d69c79e83d12ca29e05af8afc1c53279738b5cacbd458",
-    "iso24817_typea_class3.py": "b9acbac042bc4fb2dc538b8165ec0b4b488a5a0b70649627a3370368f78649ff",
-    "prowrap_calculations.py": "ea191add86766cd79fc5ec9f6e9deed8b950b1d66bd3318d89406c2846be9eca",
-    "prowrap_materials.py": "213064ff8d1a7d06646b3172b90caa79704f11742cef0ad58dbfc3ecd101320e",
-    "prowrap_mechanisms.py": "0a82e3747c1d97a0f50646d6daa1ad02eb012f4609587aad4e9946a22efa65f0"
+    "iso24817_typea_class3.py": "2971977e529a8551cab6dd72a3a3f9c48d0733e18758ea3d6fb063e32863406f",
+    "prowrap_calculations.py": "7c06ec186b12cc73f7ea92be6e1975bd86adf5330ced496831da9e475f1bf4cb",
+    "prowrap_materials.py": "574adaae2196297637fb7037b8c2082f90481da2f54b809dba6a2495a3b534f2",
+    "prowrap_mechanisms.py": "0a82e3747c1d97a0f50646d6daa1ad02eb012f4609587aad4e9946a22efa65f0",
+    "strain_limits.py": "ec5b43b25f2aae28bdc165a5dd0e3cebf51f4467248db0c68060f72171a5b27b"
   }
 }

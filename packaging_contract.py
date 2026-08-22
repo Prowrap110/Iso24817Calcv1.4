@@ -20,6 +20,7 @@ CALCULATOR_MODULES = (
     "iso24817_typea_class3.py",
     "prowrap_calculations.py",
     "prowrap_materials.py",
+    "strain_limits.py",
 )
 
 
@@ -32,11 +33,11 @@ class PackagingInputs(NamedTuple):
 def packaging_metadata() -> dict[str, str]:
     return {
         "target_arch": "arm64",
-        "bundle_id": "com.protapglobal.prowrap.iso24817calculator.v13",
+        "bundle_id": "com.protapglobal.prowrap.iso24817calculator.v14",
         "entry_point": "desktop_launcher.py",
         "executable_name": APP_NAME,
         "bundle_name": f"{APP_NAME}.app",
-        "archive_name": "PROWRAP-Calculator-v1.3-macOS-arm64-M4-M5.zip",
+        "archive_name": "PROWRAP-Calculator-v1.4-macOS-arm64-M4-M5.zip",
         "version": APP_VERSION,
     }
 

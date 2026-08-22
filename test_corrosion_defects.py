@@ -15,9 +15,9 @@ from corrosion_defects import (
 
 
 class CorrosionDefectContractTest(unittest.TestCase):
-    def test_v13_identity_and_exact_choices(self):
-        self.assertEqual(APP_NAME, "PROWRAP ISO 24817 Calculator v1.3")
-        self.assertEqual(APP_VERSION, "1.3")
+    def test_v14_identity_and_exact_choices(self):
+        self.assertEqual(APP_NAME, "PROWRAP ISO 24817 Calculator v1.4")
+        self.assertEqual(APP_VERSION, "1.4")
         self.assertEqual(
             DEFECT_LENGTH_BASES,
             (

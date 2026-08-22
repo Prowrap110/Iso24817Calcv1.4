@@ -5,22 +5,29 @@ from iso24817_typea_class3 import (
     calculate_type_a_class3,
     component_factor,
 )
+from strain_limits import LCL_STRAIN_LIMIT, STANDARD_STRAIN_LIMIT
 
 
 class Iso24817TypeAClass3Test(unittest.TestCase):
-    def test_table_9_fallback_default_matches_vba_route(self):
+    def test_public_inputs_reject_caller_supplied_lcl_value(self):
+        with self.assertRaisesRegex(
+            TypeError, "unexpected keyword argument 'long_term_strain_lcl'"
+        ):
+            TypeAClass3Inputs(long_term_strain_lcl=0.001)
+
+    def test_lcl_default_uses_the_canonical_performance_route(self):
         result = calculate_type_a_class3(TypeAClass3Inputs())
 
-        self.assertEqual(result["circumferential_strain_basis"], "table_9_fallback")
+        self.assertEqual(result["circumferential_strain_basis"], LCL_STRAIN_LIMIT)
+        self.assertEqual(result["circumferential_strain_route"], "lcl_formula_11_performance")
         self.assertAlmostEqual(result["peq_mpa"], 1.0)
         self.assertAlmostEqual(result["feq_n"], 129717.11464895941)
         self.assertAlmostEqual(result["ft1"], 0.75)
-        self.assertAlmostEqual(result["eps_c0"], 0.0027660710390639645)
+        self.assertAlmostEqual(result["eps_c0"], 0.0055)
         self.assertAlmostEqual(result["eps_a0"], 0.001)
-        # eps_c includes the conservative |Formula 10| thermal-mismatch term.
-        self.assertAlmostEqual(result["eps_c"], 0.0016845532792979733)
+        self.assertAlmostEqual(result["eps_c"], 0.0029439982341290267)
         self.assertAlmostEqual(result["eps_a"], 0.00075)
-        self.assertAlmostEqual(result["tmin_c_mm"], 3.769544691584527, places=6)
+        self.assertAlmostEqual(result["tmin_c_mm"], 2.1569306286257794, places=6)
         self.assertAlmostEqual(result["tmin_a_mm"], 7.902222222222221)
         self.assertAlmostEqual(result["tdesign_base_mm"], 7.902222222222221)
         self.assertAlmostEqual(result["lmin_transfer_mm"], 14.223999999999997)
@@ -31,21 +38,18 @@ class Iso24817TypeAClass3Test(unittest.TestCase):
         self.assertTrue(result["thickness_check_ok"])
         self.assertTrue(result["overlap_transfer_check_ok"])
 
-    def test_performance_route_requires_long_term_strain_lcl(self):
-        with self.assertRaisesRegex(ValueError, "Long-term strain LCL"):
-            calculate_type_a_class3(TypeAClass3Inputs(use_performance_data=True))
-
-    def test_performance_route_accepts_explicit_long_term_strain_lcl(self):
+    def test_standard_route_is_available_directly_to_the_rigorous_module(self):
         result = calculate_type_a_class3(
-            TypeAClass3Inputs(use_performance_data=True, long_term_strain_lcl=0.0035)
+            TypeAClass3Inputs(strain_limit_basis=STANDARD_STRAIN_LIMIT)
         )
 
-        self.assertEqual(result["circumferential_strain_basis"], "performance_data")
-        self.assertAlmostEqual(result["fperf"], 0.7136965416070369)
+        self.assertEqual(result["circumferential_strain_basis"], STANDARD_STRAIN_LIMIT)
+        self.assertEqual(result["strain_limit_base"], 0.0025)
+        self.assertEqual(result["circumferential_strain_route"], "standard_formula_10")
+        self.assertIsNone(result["fperf"])
         self.assertAlmostEqual(result["ft2"], 0.75)
-        self.assertAlmostEqual(result["eps_c"], 0.0018734534217184717)
-        # Corrected Formula (5): ps and plive terms in their ISO positions.
-        self.assertAlmostEqual(result["tmin_c_mm"], 3.3894607806147325, places=6)
+        self.assertAlmostEqual(result["eps_c"], 0.0014849999999999998)
+        self.assertAlmostEqual(result["tmin_c_mm"], 4.276091774845002, places=6)
         self.assertGreater(result["tmin_c_mm"], 0)
 
     def test_component_factors_match_vba_reference(self):

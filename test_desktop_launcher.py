@@ -288,7 +288,7 @@ class DesktopLauncherLifecycleTest(unittest.TestCase):
 
 
 class TkLauncherViewDispatchTest(unittest.TestCase):
-    def test_window_title_uses_distinct_v13_product_name(self):
+    def test_window_title_uses_distinct_v14_product_name(self):
         tk_module = mock.MagicMock()
         tk_module.NORMAL = "normal"
         tk_module.DISABLED = "disabled"
@@ -298,7 +298,7 @@ class TkLauncherViewDispatchTest(unittest.TestCase):
             view = TkLauncherView()
 
         view.root.title.assert_called_once_with(APP_NAME)
-        self.assertEqual(APP_NAME, "PROWRAP ISO 24817 Calculator v1.3")
+        self.assertEqual(APP_NAME, "PROWRAP ISO 24817 Calculator v1.4")
 
     def test_close_drops_queued_and_late_dispatch_callbacks(self):
         view = object.__new__(TkLauncherView)

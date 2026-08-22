@@ -3,6 +3,7 @@ import unittest
 import pandas as pd
 
 from corrosion_defects import ACTUAL_DEFECT_LENGTH, ENTER_MANUALLY
+from strain_limits import LCL_STRAIN_LIMIT
 from calculator_form import (
     INPUT_DEFAULTS,
     calculation_corrosion_rate,
@@ -27,6 +28,7 @@ def complete_values():
         "cloth_width_1_mm": 300,
         "cloth_width_2_mm": 300,
         "defect_length_basis": ACTUAL_DEFECT_LENGTH,
+        "strain_limit_basis": LCL_STRAIN_LIMIT,
     })
     return values
 
@@ -65,6 +67,7 @@ class CalculatorFormTest(unittest.TestCase):
         })
         new_calculation(state)
         self.assertEqual(state["defect_length_basis"], "Select…")
+        self.assertEqual(state["strain_limit_basis"], "Select…")
         self.assertEqual(state["manual_defect_rows"], [])
         self.assertFalse(state["calc_active"])
         self.assertFalse(state["force_3_layers"])
@@ -161,6 +164,14 @@ class CalculatorFormTest(unittest.TestCase):
             ],
         )
 
+    def test_strain_limit_starts_neutral_and_is_required(self):
+        values = complete_values()
+
+        self.assertEqual(INPUT_DEFAULTS["strain_limit_basis"], "Select…")
+        values["strain_limit_basis"] = "Select…"
+
+        self.assertEqual(missing_required_fields(values), ["Strain Limit"])
+
     def test_complete_form_is_ready_to_calculate(self):
         values = complete_values()
         values["show_typea_class3_check"] = True
@@ -196,6 +207,7 @@ class CalculatorFormTest(unittest.TestCase):
         self.assertEqual(
             missing_required_fields(values),
             [
+                "Strain Limit",
                 "Prowrap CF Cloth Width 1 [mm]",
                 "Prowrap CF Cloth Width 2 [mm]",
             ],
@@ -212,6 +224,7 @@ class CalculatorFormTest(unittest.TestCase):
                 "installation_temp": 20.0, "component_type": "Straight",
                 "cyclic_derating_factor": 1.0, "axial_load_case": 0,
                 "cloth_width_1_mm": 300, "cloth_width_2_mm": 300,
+                "strain_limit_basis": LCL_STRAIN_LIMIT,
             }
         )
 
